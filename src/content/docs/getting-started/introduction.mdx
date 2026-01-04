@@ -1,0 +1,86 @@
+---
+title: Introduction
+description: Learn what NRRV is and how it helps with AI-assisted software development.
+---
+
+import { Aside, Card, CardGrid } from '@astrojs/starlight/components';
+
+# Introduction to NRRV
+
+NRRV is a development lifecycle framework that brings structure and traceability to AI-assisted software development. It stands for **Navigate**, **Reason**, **Realize**, and **Validate** — four phases that guide you from initial requirements to validated, production-ready code.
+
+## Why NRRV?
+
+AI coding assistants are powerful, but using them effectively at scale requires:
+
+- **Structure**: Clear phases prevent scope creep and ensure comprehensive coverage
+- **Traceability**: Signals track every decision, making audits and debugging easier
+- **Quality**: Built-in guardrails catch issues before they become problems
+- **Learning**: Captured insights improve future development cycles
+
+<Aside type="tip">
+NRRV is framework-agnostic. It works with any tech stack, any AI provider, and any team size.
+</Aside>
+
+## Core Concepts
+
+### Loops
+
+A **loop** is a complete development cycle through all four NRRV phases. Each loop has:
+
+- A unique loop ID
+- Clear goals defined at the start
+- Signals emitted at each phase transition
+- A completion summary with metrics
+
+### Signals
+
+**Signals** are immutable events that record everything that happens during development:
+
+```yaml
+# Example: Phase transition signal
+signal_type: lifecycle.phase_transition
+timestamp: "2024-01-15T10:30:00Z"
+actor: "developer@example.com"
+payload:
+  from_phase: navigate
+  to_phase: reason
+```
+
+All derived state (YAML files, dashboards) is computed from signals, making the signal log the source of truth.
+
+### SAIL Execution
+
+Within the **Realize** phase, **SAIL** provides AI-assisted implementation:
+
+<CardGrid>
+  <Card title="Scope">
+    Extract requirements, user stories, and TDD anchors from your spec.
+  </Card>
+  <Card title="Architect">
+    Design the technical approach with AI assistance.
+  </Card>
+  <Card title="Implement">
+    Generate code using crew members (LLM agents with specific roles).
+  </Card>
+  <Card title="Learn">
+    Document what was learned for future reference.
+  </Card>
+</CardGrid>
+
+## Two CLIs
+
+NRRV provides two command-line tools:
+
+| CLI | Purpose | Key Commands |
+|-----|---------|--------------|
+| `nrrv` | Loop lifecycle management | `loop init`, `phase advance` |
+| `ldf` | SAIL execution & crew dispatch | `sail`, `crew dispatch` |
+
+## Next Steps
+
+Ready to get started?
+
+1. [Install the tools](/getting-started/installation/)
+2. [Follow the quick start guide](/getting-started/quick-start/)
+3. [Create your first loop](/getting-started/first-loop/)

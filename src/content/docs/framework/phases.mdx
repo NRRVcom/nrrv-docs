@@ -1,0 +1,332 @@
+---
+title: NRRV Phases
+description: Deep dive into the four phases of the NRRV development lifecycle.
+---
+
+import { Aside, Steps, Badge } from '@astrojs/starlight/components';
+
+# NRRV Phases
+
+NRRV structures development into four distinct phases: **Navigate**, **Reason**, **Realize**, and **Validate**. Each phase has a specific purpose and expected outputs.
+
+## Phase Overview
+
+```
+┌──────────┐    ┌──────────┐    ┌──────────┐    ┌──────────┐
+│ Navigate │───▶│  Reason  │───▶│ Realize  │───▶│ Validate │
+│          │    │          │    │          │    │          │
+│  Goals   │    │  Design  │    │  Build   │    │  Verify  │
+└──────────┘    └──────────┘    └──────────┘    └──────────┘
+```
+
+## Navigate
+
+<Badge text="Phase 1" variant="caution" />
+
+The Navigate phase establishes **direction and requirements**.
+
+### Purpose
+
+- Define what you're trying to accomplish
+- Gather requirements and constraints
+- Create initial specs
+
+### Activities
+
+<Steps>
+1. Initialize a new loop with goals
+2. Create or select a spec file
+3. Define requirements and acceptance criteria
+4. Identify constraints and dependencies
+</Steps>
+
+### Commands
+
+```bash
+# Start a loop with goals
+nrrv loop init --goals "Build user authentication"
+
+# Create a spec
+ldf spec create auth-feature --set
+
+# Check phase status
+nrrv loop status
+```
+
+### Outputs
+
+- Loop initialized with goals
+- Spec file created with requirements
+- Ready to advance to Reason
+
+### Advancing
+
+```bash
+# Move to Reason phase
+nrrv phase advance reason
+```
+
+The CLI will warn if expected outputs are missing (e.g., no spec file).
+
+---
+
+## Reason
+
+<Badge text="Phase 2" variant="note" />
+
+The Reason phase focuses on **design and decision-making**.
+
+### Purpose
+
+- Design the technical solution
+- Make architectural decisions
+- Plan the implementation approach
+
+<Aside type="tip">
+The Reason phase is where *you* make the important decisions—before AI assistance kicks in during Realize. This ensures you maintain control over the technical direction.
+</Aside>
+
+### Activities
+
+<Steps>
+1. Review requirements from Navigate
+2. Design data models and schemas
+3. Choose technologies and patterns
+4. Define API contracts
+5. Plan testing strategy
+</Steps>
+
+### Commands
+
+```bash
+# Check current phase
+nrrv loop status
+
+# Update spec with technical details
+ldf spec edit
+
+# Advance when ready
+nrrv phase advance realize
+```
+
+### Outputs
+
+- Technical design documented in spec
+- Architecture decisions made
+- Implementation plan defined
+
+### Decision Points
+
+During Reason, document these decisions:
+
+| Decision | Example |
+|----------|---------|
+| Data storage | PostgreSQL with Prisma ORM |
+| API style | REST with JSON responses |
+| Auth approach | JWT with refresh tokens |
+| Error handling | Structured error objects |
+| Testing | Jest unit tests + Supertest integration |
+
+---
+
+## Realize
+
+<Badge text="Phase 3" variant="success" />
+
+The Realize phase is where **AI-assisted implementation** happens.
+
+### Purpose
+
+- Build the solution with AI assistance
+- Generate code, tests, and documentation
+- Capture learnings for future reference
+
+### SAIL Execution
+
+Within Realize, the SAIL framework structures AI assistance:
+
+```
+┌─────────┐    ┌───────────┐    ┌───────────┐    ┌─────────┐
+│  Scope  │───▶│ Architect │───▶│ Implement │───▶│  Learn  │
+└─────────┘    └───────────┘    └───────────┘    └─────────┘
+```
+
+1. **Scope**: Extract requirements into user stories and TDD anchors
+2. **Architect**: Generate technical design artifacts
+3. **Implement**: Dispatch crew members to generate code
+4. **Learn**: Document what was learned
+
+### Commands
+
+```bash
+# Run SAIL phases
+ldf sail scope complete
+ldf sail architect complete
+ldf crew dispatch coder
+ldf sail learn complete
+
+# Check SAIL status
+ldf sail status
+```
+
+### Crew Dispatch
+
+Crew members are specialized AI agents:
+
+```bash
+# Dispatch the coder
+ldf crew dispatch coder
+
+# Check dispatch status
+ldf crew status
+```
+
+See [Crew System](/crew/overview/) for details.
+
+### Outputs
+
+- Generated source code
+- Unit and integration tests
+- Documentation updates
+- Captured learnings
+
+---
+
+## Validate
+
+<Badge text="Phase 4" variant="tip" />
+
+The Validate phase **verifies quality** before completing the loop.
+
+### Purpose
+
+- Run tests and verify correctness
+- Check code quality with guardrails
+- Review and approve changes
+- Complete the loop with an outcome
+
+### Activities
+
+<Steps>
+1. Run automated tests
+2. Execute guardrail checks
+3. Review generated code
+4. Fix any issues
+5. Complete the loop
+</Steps>
+
+### Commands
+
+```bash
+# Run tests
+npm test
+
+# Run guardrails
+ldf guardrails check src/
+
+# Complete the loop
+nrrv loop complete --outcome continue
+```
+
+### Guardrails
+
+Guardrails are automated quality checks:
+
+```bash
+# Check specific files
+ldf guardrails check src/auth/
+
+# Check with specific rules
+ldf guardrails check --rules security,style src/
+```
+
+See [Guardrails](/framework/guardrails/) for details.
+
+### Loop Outcomes
+
+When completing a loop, choose an outcome:
+
+| Outcome | Meaning |
+|---------|---------|
+| `continue` | Success—proceed with next work |
+| `adjust` | Partial success—minor changes needed |
+| `pivot` | Significant issues—major direction change |
+
+```bash
+nrrv loop complete --outcome continue
+```
+
+---
+
+## Phase Transitions
+
+### Valid Transitions
+
+Phases must be advanced in order:
+
+```
+navigate → reason → realize → validate → (loop complete)
+```
+
+You cannot skip phases or go backwards.
+
+### Transition Signals
+
+Each transition emits a signal:
+
+```yaml
+signal_type: lifecycle.phase_transition
+timestamp: "2024-01-15T14:30:00Z"
+actor: "dev@example.com"
+source: nrrv
+payload:
+  from_phase: reason
+  to_phase: realize
+```
+
+### Transition Warnings
+
+The CLI may warn if expected outputs are missing:
+
+```bash
+$ nrrv phase advance reason
+⚠️  Warning: No spec file found
+Continue anyway? [y/N]
+```
+
+You can acknowledge warnings and proceed:
+
+```bash
+nrrv phase advance reason --force
+```
+
+This creates a waiver signal for audit purposes.
+
+---
+
+## Phase Durations
+
+There's no enforced time limit on phases. However, signals record timestamps, allowing you to analyze how long each phase takes:
+
+```bash
+# View loop with timing
+nrrv loop status --verbose
+```
+
+```
+Loop #5 — validate
+Started: 2024-01-15T09:00:00Z
+Current Duration: 4h 30m
+
+Phase Durations:
+  navigate: 45m
+  reason: 1h 20m
+  realize: 2h 15m (SAIL)
+  validate: 10m (current)
+```
+
+## Next Steps
+
+- [Signals](/framework/signals/) — How phase changes are recorded
+- [SAIL Overview](/sail/overview/) — Deep dive into AI-assisted implementation
+- [Loops](/framework/loops/) — Complete loop lifecycle

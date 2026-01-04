@@ -1,0 +1,118 @@
+---
+title: Installation
+description: How to install the NRRV and LDF command-line tools.
+---
+
+import { Aside, Tabs, TabItem, Steps } from '@astrojs/starlight/components';
+
+# Installation
+
+This guide covers installing the NRRV CLI tools and configuring your LLM providers.
+
+## Prerequisites
+
+- **Node.js** 20 or later
+- **pnpm** 9 or later (recommended) or npm
+- An API key for at least one LLM provider (Claude, OpenAI, or Gemini)
+
+## Install the CLIs
+
+<Tabs>
+  <TabItem label="pnpm">
+```bash
+# Install NRRV and LDF CLIs globally
+pnpm add -g @nrrv/cli @ldf/cli
+
+# Install a provider (at least one required)
+pnpm add -g @ldf/provider-claude
+```
+  </TabItem>
+  <TabItem label="npm">
+```bash
+# Install NRRV and LDF CLIs globally
+npm install -g @nrrv/cli @ldf/cli
+
+# Install a provider (at least one required)
+npm install -g @ldf/provider-claude
+```
+  </TabItem>
+</Tabs>
+
+### Available Providers
+
+| Provider | Package | Required Env Var |
+|----------|---------|------------------|
+| Claude (Anthropic) | `@ldf/provider-claude` | `ANTHROPIC_API_KEY` |
+| OpenAI | `@ldf/provider-openai` | `OPENAI_API_KEY` |
+| Gemini (Google) | `@ldf/provider-gemini` | `GOOGLE_API_KEY` |
+
+<Aside type="tip">
+Install `@ldf/providers` to get all providers at once:
+```bash
+pnpm add -g @ldf/providers
+```
+</Aside>
+
+## Configure Your API Key
+
+Set your API key as an environment variable:
+
+<Tabs>
+  <TabItem label="Claude">
+```bash
+export ANTHROPIC_API_KEY="sk-ant-..."
+```
+  </TabItem>
+  <TabItem label="OpenAI">
+```bash
+export OPENAI_API_KEY="sk-..."
+```
+  </TabItem>
+  <TabItem label="Gemini">
+```bash
+export GOOGLE_API_KEY="AIza..."
+```
+  </TabItem>
+</Tabs>
+
+Add this to your shell profile (`~/.zshrc`, `~/.bashrc`) to persist it.
+
+## Verify Installation
+
+<Steps>
+1. Check that the CLIs are installed:
+   ```bash
+   nrrv --version
+   ldf --version
+   ```
+
+2. Verify your provider is detected:
+   ```bash
+   ldf providers
+   ```
+
+3. Test your credentials:
+   ```bash
+   ldf providers check claude
+   ```
+</Steps>
+
+You should see output like:
+
+```
+LLM Providers — 1 installed, 2 available
+
+Installed
+  ● claude       Claude (Anthropic)
+
+Available (not installed)
+  ○ openai       @ldf/provider-openai
+  ○ gemini       @ldf/provider-gemini
+```
+
+## Next Steps
+
+Now that you have the tools installed:
+
+- [Quick Start](/getting-started/quick-start/) - Create your first project in 5 minutes
+- [First Loop](/getting-started/first-loop/) - Walk through a complete development loop

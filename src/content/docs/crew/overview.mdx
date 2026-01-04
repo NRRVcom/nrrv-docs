@@ -1,0 +1,295 @@
+---
+title: Crew System Overview
+description: Understanding the crew system for AI-assisted development.
+---
+
+import { Aside, Card, CardGrid, Tabs, TabItem } from '@astrojs/starlight/components';
+
+# Crew System Overview
+
+The **Crew System** manages AI agents (crew members) that perform specific development tasks. Each crew member has a defined role and capabilities.
+
+## What Is the Crew System?
+
+The crew system provides:
+
+- **Specialized agents**: Different crew members for different tasks
+- **Captain orchestration**: A coordinating layer that manages crew dispatch
+- **Provider abstraction**: Support for multiple LLM providers
+- **Signal tracking**: All crew actions are recorded as signals
+
+```
+┌────────────────────────────────────────────────────────────┐
+│                        Captain                              │
+│              (Orchestrates crew dispatch)                   │
+├────────────────────────────────────────────────────────────┤
+│   scope    │  architect  │   coder   │  tester  │ reviewer │
+│            │             │           │          │          │
+│  Extract   │   Design    │  Generate │  Write   │  Review  │
+│  reqs      │   system    │  code     │  tests   │  code    │
+├────────────────────────────────────────────────────────────┤
+│                       Providers                             │
+│         Claude    │    OpenAI    │    Gemini               │
+└────────────────────────────────────────────────────────────┘
+```
+
+## Crew Members
+
+<CardGrid>
+  <Card title="scope" icon="document">
+    Extracts requirements, user stories, and TDD anchors from specs.
+  </Card>
+  <Card title="architect" icon="setting">
+    Designs technical architecture and component specifications.
+  </Card>
+  <Card title="coder" icon="laptop">
+    Generates implementation code from designs.
+  </Card>
+  <Card title="tester" icon="approve-check">
+    Creates unit and integration tests.
+  </Card>
+  <Card title="reviewer" icon="magnifier">
+    Reviews code for issues and improvements.
+  </Card>
+  <Card title="documenter" icon="open-book">
+    Generates API documentation and guides.
+  </Card>
+</CardGrid>
+
+## Dispatching Crew Members
+
+Use the `ldf crew dispatch` command:
+
+```bash
+# Dispatch a single crew member
+ldf crew dispatch coder
+
+# Dispatch multiple crew members
+ldf crew dispatch coder tester
+
+# With options
+ldf crew dispatch coder --reasoning high --max-tokens 16000
+```
+
+### Dispatch Options
+
+| Option | Description | Default |
+|--------|-------------|---------|
+| `--spec` | Target spec file | Active spec |
+| `--provider` | LLM provider to use | Default provider |
+| `--model` | Specific model | Provider default |
+| `--reasoning` | Reasoning level | `medium` |
+| `--max-tokens` | Max output tokens | `16000` |
+| `--temperature` | Response temperature | `0.7` |
+| `--dry-run` | Preview without execution | `false` |
+
+## Reasoning Levels
+
+Control how much the AI "thinks" before responding:
+
+```bash
+ldf crew dispatch coder --reasoning high
+```
+
+| Level | Description | Best For |
+|-------|-------------|----------|
+| `none` | Direct response, no reasoning | Simple tasks |
+| `low` | Brief reasoning | Routine implementations |
+| `medium` | Balanced reasoning (default) | Most tasks |
+| `high` | Extended reasoning | Complex logic |
+| `xhigh` | Maximum reasoning | Critical code |
+
+<Aside type="tip">
+Higher reasoning levels produce better results but take longer and use more tokens. Start with `medium` and increase if needed.
+</Aside>
+
+## Crew Status
+
+Check current crew status:
+
+```bash
+ldf crew status
+```
+
+Output:
+```
+Crew Status — auth-feature
+
+Recent Dispatches:
+  coder     ✓ success   45.2s   8,500 in / 3,200 out
+  tester    ✓ success   23.1s   4,200 in / 1,800 out
+
+Active Dispatches:
+  (none)
+
+Provider: claude (claude-sonnet-4-20250514)
+```
+
+## Captain
+
+The **Captain** is the orchestration layer that:
+
+- Manages crew member dispatch
+- Handles provider selection
+- Coordinates multi-crew workflows
+- Tracks token usage and timing
+
+See [Captain](/crew/captain/) for details.
+
+## Providers
+
+Crew members use **providers** to access LLMs:
+
+```bash
+# List available providers
+ldf providers
+
+# Use a specific provider
+ldf crew dispatch coder --provider openai
+```
+
+Available providers:
+
+| Provider | Package | Models |
+|----------|---------|--------|
+| Claude | `@ldf/provider-claude` | claude-sonnet-4-20250514, claude-opus-4-5-20251101 |
+| OpenAI | `@ldf/provider-openai` | gpt-4o, gpt-4-turbo |
+| Gemini | `@ldf/provider-gemini` | gemini-2.0-flash, gemini-1.5-pro |
+
+See [Providers](/crew/providers/) for details.
+
+## Signals
+
+All crew activity is recorded as signals:
+
+<Tabs>
+  <TabItem label="Started">
+```yaml
+signal_type: crew.dispatch_started
+payload:
+  dispatch_id: "d-abc123"
+  crew_member: coder
+  spec: "auth-feature"
+  phase: implement
+  provider:
+    name: claude
+    model: claude-sonnet-4-20250514
+  config:
+    reasoning: medium
+    max_tokens: 16000
+```
+  </TabItem>
+  <TabItem label="Completed">
+```yaml
+signal_type: crew.dispatch_completed
+payload:
+  dispatch_id: "d-abc123"
+  crew_member: coder
+  result:
+    status: success
+    duration_ms: 45230
+  tokens:
+    input: 8500
+    output: 3200
+    total: 11700
+  artifacts_produced:
+    - path: "src/auth/service.ts"
+      type: typescript
+      lines: 145
+```
+  </TabItem>
+  <TabItem label="Failed">
+```yaml
+signal_type: crew.dispatch_failed
+payload:
+  dispatch_id: "d-abc123"
+  crew_member: coder
+  error:
+    type: rate_limit
+    message: "Rate limit exceeded"
+    retryable: true
+    retry_after_seconds: 60
+```
+  </TabItem>
+</Tabs>
+
+## Configuration
+
+Configure crew behavior in `.ldf/settings.yaml`:
+
+```yaml
+crew:
+  # Default provider for all crew members
+  default_provider: claude
+  default_model: claude-sonnet-4-20250514
+
+  # Default reasoning level
+  default_reasoning: medium
+
+  # Default max tokens
+  default_max_tokens: 16000
+
+  # Per-crew configuration
+  members:
+    coder:
+      reasoning: high
+      max_tokens: 32000
+
+    tester:
+      reasoning: medium
+      max_tokens: 16000
+
+    reviewer:
+      provider: openai
+      model: gpt-4o
+```
+
+## Error Handling
+
+When dispatch fails, the crew system provides detailed errors:
+
+```bash
+$ ldf crew dispatch coder
+Error: Provider error (rate_limit)
+
+Rate limit exceeded. Retry after 60 seconds.
+
+Options:
+  1. Wait and retry: ldf crew dispatch coder
+  2. Use different provider: ldf crew dispatch coder --provider openai
+  3. Reduce max tokens: ldf crew dispatch coder --max-tokens 8000
+```
+
+Error types:
+
+| Type | Description | Retryable |
+|------|-------------|-----------|
+| `rate_limit` | API rate limit hit | Yes (after delay) |
+| `auth_failed` | Invalid credentials | No |
+| `timeout` | Request timed out | Yes |
+| `provider_error` | Provider-side error | Maybe |
+| `internal` | Internal LDF error | No |
+
+## Guardrails Integration
+
+Crew output passes through guardrails:
+
+```bash
+$ ldf crew dispatch coder
+...
+⚠️  Guardrail violation detected
+
+security.no-hardcoded-secrets (error)
+  File: src/auth/config.ts, Line: 15
+  Potential hardcoded API key detected
+
+Output blocked. Fix violations or use --force to override.
+```
+
+See [Guardrails](/framework/guardrails/) for details.
+
+## Next Steps
+
+- [Captain](/crew/captain/) — Orchestration details
+- [Crew Members](/crew/members/) — Individual crew member reference
+- [Providers](/crew/providers/) — LLM provider configuration

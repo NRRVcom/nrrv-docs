@@ -1,0 +1,385 @@
+---
+title: Signals
+description: Understanding the NRRV signal system—the source of truth for all state.
+---
+
+import { Aside, Tabs, TabItem } from '@astrojs/starlight/components';
+
+# Signals
+
+Signals are immutable events that form the source of truth in the NRRV ecosystem. All state is derived from the signal log.
+
+## What Are Signals?
+
+A **signal** is a structured event that records something that happened:
+
+```yaml
+signal_type: lifecycle.phase_transition
+version: "1.0"
+timestamp: "2024-01-15T10:30:00Z"
+actor: "developer@example.com"
+source: nrrv
+payload:
+  from_phase: navigate
+  to_phase: reason
+metadata:
+  signal_id: "2024-01-15T10-30-00Z_01942d5e-7f3d-7abc-8def-123456789abc"
+  cli_version: "0.1.0"
+  nrrv_spec: "1.0"
+```
+
+### Key Properties
+
+| Property | Purpose |
+|----------|---------|
+| `signal_type` | Categorized identifier (e.g., `lifecycle.phase_transition`) |
+| `timestamp` | When the event occurred (ISO 8601) |
+| `actor` | Who triggered it (email from git config or `NRRV_ACTOR`) |
+| `source` | Which system emitted it (`nrrv`, `ldf`, `ci`, `api`, `manual`) |
+| `payload` | Signal-specific data |
+| `metadata` | Signal ID, CLI version, spec version |
+
+<Aside type="tip">
+Signal IDs use UUID v7, which includes a timestamp component. This makes them sortable and unique across distributed systems.
+</Aside>
+
+## Signal Categories
+
+### Lifecycle Signals
+
+Emitted by the `nrrv` CLI for loop and phase management.
+
+<Tabs>
+  <TabItem label="loop_start">
+```yaml
+signal_type: lifecycle.loop_start
+payload:
+  loop_id: 5
+  goals:
+    - "Add user authentication"
+    - "Implement password reset"
+  initial_phase: navigate
+```
+  </TabItem>
+  <TabItem label="phase_transition">
+```yaml
+signal_type: lifecycle.phase_transition
+payload:
+  from_phase: navigate
+  to_phase: reason
+  acknowledged_warnings:
+    - "missing_spec"
+```
+  </TabItem>
+  <TabItem label="loop_complete">
+```yaml
+signal_type: lifecycle.loop_complete
+payload:
+  loop_id: 5
+  outcome: continue
+  outcome_reason: "All tests passing, ready for production"
+  final_phase: validate
+  archived_to: ".nrrv/history/loop-005"
+  signals_archived: 24
+  summary:
+    duration_days: 2
+    goals_achieved: 2
+    goals_partial: 0
+    goals_missed: 0
+    total_signals: 24
+    waivers: 1
+```
+  </TabItem>
+  <TabItem label="waiver">
+```yaml
+signal_type: lifecycle.waiver
+payload:
+  warning_id: "missing_spec"
+  reason: "Spec will be created during Reason phase"
+  phase: navigate
+```
+  </TabItem>
+</Tabs>
+
+### SAIL Signals
+
+Emitted by the `ldf` CLI during SAIL execution.
+
+```yaml
+signal_type: sail.phase_complete
+payload:
+  phase: scope
+  spec: "auth-feature"
+  build_status: success
+  test_results:
+    total: 15
+    passed: 15
+    failed: 0
+  crew_members_used:
+    - scope
+  learnings:
+    - "JWT refresh tokens need 7-day expiry per security policy"
+```
+
+### Crew Dispatch Signals
+
+Track AI crew member execution.
+
+<Tabs>
+  <TabItem label="dispatch_started">
+```yaml
+signal_type: crew.dispatch_started
+payload:
+  dispatch_id: "d-abc123"
+  crew_member: coder
+  spec: "auth-feature"
+  phase: implement
+  provider:
+    name: claude
+    model: claude-sonnet-4-20250514
+  config:
+    reasoning: medium
+    max_tokens: 16000
+    temperature: 0.7
+```
+  </TabItem>
+  <TabItem label="dispatch_completed">
+```yaml
+signal_type: crew.dispatch_completed
+payload:
+  dispatch_id: "d-abc123"
+  crew_member: coder
+  spec: "auth-feature"
+  phase: implement
+  provider:
+    name: claude
+    model: claude-sonnet-4-20250514
+  result:
+    status: success
+    duration_ms: 45230
+  tokens:
+    input: 8500
+    output: 3200
+    total: 11700
+    cache_read: 2000
+  artifacts_produced:
+    - path: "src/auth/service.ts"
+      type: typescript
+      lines: 145
+    - path: "src/auth/service.test.ts"
+      type: typescript
+      lines: 89
+```
+  </TabItem>
+  <TabItem label="dispatch_failed">
+```yaml
+signal_type: crew.dispatch_failed
+payload:
+  dispatch_id: "d-abc123"
+  crew_member: coder
+  spec: "auth-feature"
+  provider:
+    name: claude
+    model: claude-sonnet-4-20250514
+  error:
+    type: rate_limit
+    message: "Rate limit exceeded"
+    retryable: true
+    retry_after_seconds: 60
+```
+  </TabItem>
+</Tabs>
+
+### Guardrail Signals
+
+Track quality enforcement.
+
+<Tabs>
+  <TabItem label="violation">
+```yaml
+signal_type: guardrail.violation
+payload:
+  dispatch_id: "d-abc123"
+  crew_member: coder
+  spec: "auth-feature"
+  blocked: true
+  violations:
+    - guardrail_id: "security.no-hardcoded-secrets"
+      guardrail_name: "No Hardcoded Secrets"
+      severity: error
+      file: "src/auth/config.ts"
+      line: 15
+      message: "Potential hardcoded API key detected"
+      suggestion: "Use environment variables instead"
+  summary:
+    total: 1
+    errors: 1
+    warnings: 0
+    infos: 0
+```
+  </TabItem>
+  <TabItem label="override">
+```yaml
+signal_type: guardrail.override
+payload:
+  dispatch_id: "d-abc123"
+  crew_member: coder
+  spec: "auth-feature"
+  overridden_violations:
+    - guardrail_id: "style.max-file-length"
+      severity: warning
+      reason: "File will be split in follow-up task"
+```
+  </TabItem>
+</Tabs>
+
+### TDD Signals
+
+Track test-driven development coverage.
+
+```yaml
+signal_type: tdd.coverage_report
+payload:
+  spec: "auth-feature"
+  phase: implement
+  summary:
+    total_anchors: 12
+    coverage_percent: 83.3
+  by_status:
+    pending: 2
+    passing: 10
+    failing: 0
+  by_type:
+    unit: 8
+    integration: 3
+    acceptance: 1
+  gaps:
+    - anchor_id: "auth-003"
+      anchor: "Password reset sends email"
+      priority: high
+```
+
+### Build/Test Signals
+
+Emitted by CI systems.
+
+<Tabs>
+  <TabItem label="build.completed">
+```yaml
+signal_type: build.completed
+source: ci
+payload:
+  status: success
+  duration_ms: 34500
+  warnings:
+    - "Deprecated API usage in src/legacy.ts"
+```
+  </TabItem>
+  <TabItem label="test.run_completed">
+```yaml
+signal_type: test.run_completed
+source: ci
+payload:
+  status: success
+  total: 156
+  passed: 156
+  failed: 0
+  skipped: 3
+  duration_ms: 12400
+  coverage:
+    lines: 87.5
+    branches: 82.1
+    functions: 91.2
+```
+  </TabItem>
+</Tabs>
+
+## Signal Storage
+
+Signals are stored as YAML files in `.nrrv/signals/`:
+
+```
+.nrrv/
+└── signals/
+    ├── 2024-01-15T10-00-00Z_01942d5e-0000-7abc-8def-000000000001.yaml
+    ├── 2024-01-15T10-30-00Z_01942d5e-0000-7abc-8def-000000000002.yaml
+    └── 2024-01-15T11-00-00Z_01942d5e-0000-7abc-8def-000000000003.yaml
+```
+
+<Aside>
+Signal filenames are their IDs, which include timestamps. This makes chronological ordering natural via filesystem sorting.
+</Aside>
+
+## Derived State
+
+All "current state" is computed from signals:
+
+| Derived File | Computed From |
+|--------------|---------------|
+| `.nrrv/loop.yaml` | Latest `loop_start` + phase transitions |
+| SAIL status | `sail.phase_complete` signals |
+| Crew status | `crew.dispatch_*` signals |
+
+When you run `nrrv loop status`, it reads signals and computes the current state—it doesn't read a pre-stored state file.
+
+## Signal Immutability
+
+Signals are **append-only**:
+
+- Once written, a signal cannot be modified
+- To "undo" an action, emit a compensating signal
+- The full history is always available
+
+This provides:
+
+- Complete audit trail
+- Conflict detection (via signal IDs)
+- Debugging capability (replay signals)
+
+## Conflict Detection
+
+If two developers try to advance phases simultaneously, the second will be rejected:
+
+```yaml
+signal_type: lifecycle.transition_conflict
+payload:
+  loop_id: 5
+  attempted_from: reason
+  attempted_to: realize
+  blocked_by: "2024-01-15T10-30-00Z_01942d5e-xxxx-..."
+  reason: "Phase already transitioned by another actor"
+```
+
+## Emitting Custom Signals
+
+External systems can emit signals via the API:
+
+```bash
+# Emit a CI signal
+curl -X POST https://api.nrrv.com/signals \
+  -H "Authorization: Bearer $NRRV_TOKEN" \
+  -d '{
+    "signal_type": "build.completed",
+    "source": "ci",
+    "payload": {
+      "status": "success",
+      "duration_ms": 34500
+    }
+  }'
+```
+
+Or use the `manual` source for ad-hoc signals:
+
+```yaml
+signal_type: custom.note
+source: manual
+actor: "dev@example.com"
+payload:
+  message: "Deployed to staging for testing"
+```
+
+## Next Steps
+
+- [Loops](/framework/loops/) — How signals construct loop state
+- [API Reference](/api/signals/) — Complete signal schema reference
+- [SAIL Overview](/sail/overview/) — Signals in AI-assisted development

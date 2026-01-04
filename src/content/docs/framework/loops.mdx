@@ -1,0 +1,285 @@
+---
+title: Loops
+description: Understanding the NRRV loop lifecycle from initialization to completion.
+---
+
+import { Aside, Steps, Card, CardGrid } from '@astrojs/starlight/components';
+
+# Loops
+
+A **loop** is a complete development cycle through all four NRRV phases. This page covers the full loop lifecycle.
+
+## What Is a Loop?
+
+A loop represents a discrete unit of development work:
+
+- It starts with defined goals
+- Progresses through Navigate → Reason → Realize → Validate
+- Ends with an outcome and summary
+- All signals are archived for historical reference
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                           Loop #5                                │
+├─────────────────────────────────────────────────────────────────┤
+│  Goals: Add user authentication, Implement password reset        │
+├─────────────────────────────────────────────────────────────────┤
+│  navigate ──▶ reason ──▶ realize ──▶ validate ──▶ complete      │
+│    45m         1h 20m      2h 15m       30m                      │
+├─────────────────────────────────────────────────────────────────┤
+│  Outcome: continue | Signals: 24 | Duration: 4h 50m             │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+## Loop Lifecycle
+
+### 1. Initialization
+
+Start a new loop with the `nrrv loop init` command:
+
+```bash
+# Basic initialization
+nrrv loop init
+
+# With goals
+nrrv loop init --goals "Add user authentication"
+
+# With multiple goals
+nrrv loop init --goals "Add auth" --goals "Add password reset"
+```
+
+This emits a `lifecycle.loop_start` signal:
+
+```yaml
+signal_type: lifecycle.loop_start
+payload:
+  loop_id: 5
+  goals:
+    - "Add user authentication"
+    - "Add password reset"
+  initial_phase: navigate
+```
+
+<Aside type="tip">
+Loop IDs are auto-incrementing integers. The next loop ID is determined by scanning existing signals for the highest `loop_id`.
+</Aside>
+
+### 2. Phase Progression
+
+Advance through phases using `nrrv phase advance`:
+
+```bash
+# Advance to the next phase
+nrrv phase advance reason
+nrrv phase advance realize
+nrrv phase advance validate
+```
+
+Each transition emits a `lifecycle.phase_transition` signal and is validated:
+
+- **Navigate → Reason**: Checks for spec file
+- **Reason → Realize**: Checks for technical design
+- **Realize → Validate**: Checks for generated code
+- **Validate → Complete**: Checks for test results
+
+### 3. Completion
+
+Complete the loop with an outcome:
+
+```bash
+# Complete successfully
+nrrv loop complete --outcome continue
+
+# Complete with adjustments needed
+nrrv loop complete --outcome adjust --reason "Minor refinements needed"
+
+# Complete with major pivot
+nrrv loop complete --outcome pivot --reason "Requirements changed significantly"
+```
+
+## Loop Outcomes
+
+| Outcome | When to Use | Next Steps |
+|---------|-------------|------------|
+| `continue` | Goals achieved, ready to proceed | Start next loop with new goals |
+| `adjust` | Partial success, minor changes | Address issues, then continue |
+| `pivot` | Major issues or requirement changes | Re-evaluate approach |
+
+The outcome is recorded in the `lifecycle.loop_complete` signal:
+
+```yaml
+signal_type: lifecycle.loop_complete
+payload:
+  loop_id: 5
+  outcome: continue
+  outcome_reason: "All acceptance criteria met"
+  final_phase: validate
+  archived_to: ".nrrv/history/loop-005"
+  signals_archived: 24
+  summary:
+    duration_days: 0
+    goals_achieved: 2
+    goals_partial: 0
+    goals_missed: 0
+    total_signals: 24
+    waivers: 1
+```
+
+## Checking Status
+
+View current loop status at any time:
+
+```bash
+# Basic status
+nrrv loop status
+```
+
+Output:
+```
+Loop #5 — realize
+Goals: Add user authentication, Implement password reset
+Started: 2024-01-15T09:00:00Z
+Duration: 2h 30m
+Phase: realize (SAIL: implement)
+```
+
+```bash
+# Verbose status with phase details
+nrrv loop status --verbose
+```
+
+Output:
+```
+Loop #5 — realize
+Goals:
+  • Add user authentication
+  • Implement password reset
+Started: 2024-01-15T09:00:00Z
+Duration: 2h 30m
+
+Phase Timeline:
+  navigate    09:00 - 09:45  (45m)
+  reason      09:45 - 11:05  (1h 20m)
+  realize     11:05 - now    (1h 25m) ← current
+
+SAIL Status:
+  ✓ scope      complete
+  ✓ architect  complete
+  ⋯ implement  in progress
+  ○ learn      pending
+
+Signals Emitted: 18
+Waivers: 1
+```
+
+## Loop History
+
+When a loop completes, its signals are archived:
+
+```
+.nrrv/
+├── loop.yaml           # Current loop (empty after complete)
+├── signals/            # Active signals (cleared after complete)
+└── history/
+    ├── loop-001/
+    │   └── signals/
+    ├── loop-002/
+    │   └── signals/
+    └── loop-005/
+        └── signals/    # Archived from completed loop
+```
+
+View history:
+
+```bash
+# List past loops
+nrrv loop history
+
+# View specific loop
+nrrv loop history 5
+```
+
+## Multiple Loops
+
+Loops are sequential—you can only have one active loop at a time. Complete the current loop before starting a new one.
+
+```bash
+# This will fail if a loop is active
+$ nrrv loop init
+Error: Loop #5 is already active. Complete it first with:
+  nrrv loop complete --outcome <continue|adjust|pivot>
+```
+
+## Waivers
+
+If you need to proceed despite warnings, the CLI creates waiver signals:
+
+```bash
+$ nrrv phase advance reason
+⚠️  Warning: No spec file found (missing_spec)
+Proceeding will create a waiver. Continue? [y/N] y
+```
+
+This creates:
+
+```yaml
+signal_type: lifecycle.waiver
+payload:
+  warning_id: "missing_spec"
+  reason: "User acknowledged and proceeded"
+  phase: navigate
+```
+
+Waivers are tracked in the loop summary for audit purposes.
+
+## Goals Tracking
+
+Goals are tracked throughout the loop:
+
+<Steps>
+1. **Set goals** at loop initialization
+2. **Reference goals** during development
+3. **Assess goals** at completion
+</Steps>
+
+The completion summary includes goal achievement:
+
+```yaml
+summary:
+  goals_achieved: 2    # Fully met
+  goals_partial: 0     # Partially met
+  goals_missed: 0      # Not met
+```
+
+## Loop Signals Summary
+
+| Signal | When Emitted |
+|--------|--------------|
+| `lifecycle.loop_start` | Loop initialized |
+| `lifecycle.phase_transition` | Phase advanced |
+| `lifecycle.waiver` | Warning acknowledged |
+| `lifecycle.transition_conflict` | Concurrent edit detected |
+| `lifecycle.loop_complete` | Loop finished |
+
+## Best Practices
+
+<CardGrid>
+  <Card title="Keep Loops Focused">
+    Each loop should have 1-3 clear, achievable goals. If goals are too broad, break them into multiple loops.
+  </Card>
+  <Card title="Don't Skip Phases">
+    Each phase has value. Skipping Reason leads to unreviewed AI decisions. Skipping Validate leads to quality issues.
+  </Card>
+  <Card title="Document Waivers">
+    If you must waive a check, document why. The waiver signal includes a reason field.
+  </Card>
+  <Card title="Review History">
+    Use `nrrv loop history` to learn from past loops. What took longest? Where were waivers needed?
+  </Card>
+</CardGrid>
+
+## Next Steps
+
+- [NRRV Phases](/framework/phases/) — Detailed phase documentation
+- [Signals](/framework/signals/) — Complete signal reference
+- [SAIL Overview](/sail/overview/) — AI-assisted implementation within loops

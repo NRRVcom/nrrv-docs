@@ -1,0 +1,329 @@
+---
+title: Learn Phase
+description: Capture insights and learnings for future reference.
+---
+
+import { Aside, Steps, Card, CardGrid } from '@astrojs/starlight/components';
+
+# Learn Phase
+
+The **Learn** phase captures insights from implementation, creating knowledge artifacts that improve future development cycles.
+
+## Purpose
+
+Learn transforms implementation experience into reusable knowledge:
+
+```
+┌─────────────────────┐         ┌─────────────────────────┐
+│  Implementation     │         │   Knowledge Artifacts   │
+│                     │         │                         │
+│ - Generated Code    │  ───▶   │ - Learnings (YAML)      │
+│ - Test Results      │         │ - Patterns Discovered   │
+│ - Guardrail Output  │         │ - Issues Encountered    │
+│ - Time/Token Usage  │         │ - Recommendations       │
+└─────────────────────┘         └─────────────────────────┘
+```
+
+## Running Learn
+
+```bash
+# Complete the learn phase
+ldf sail learn complete
+
+# With a specific spec
+ldf sail learn complete --spec auth-feature
+
+# Dry run to preview
+ldf sail learn complete --dry-run
+```
+
+## What Learn Produces
+
+### Learnings Document
+
+A structured record of insights:
+
+```yaml
+# .ldf/sail/learn/learnings.yaml
+spec: auth-feature
+completed_at: "2024-01-15T14:30:00Z"
+duration:
+  total_ms: 174250
+  by_phase:
+    scope: 135000
+    architect: 222000
+    implement: 45230
+    learn: 12020
+
+learnings:
+  - id: L-001
+    category: pattern
+    title: JWT Token Handling
+    description: |
+      Using HTTP-only cookies for refresh tokens with short-lived
+      access tokens in memory provides good security/UX balance.
+    applies_to:
+      - authentication
+      - token-management
+
+  - id: L-002
+    category: pitfall
+    title: Bcrypt Async Operations
+    description: |
+      Bcrypt hash/compare operations are CPU-intensive. Always use
+      async versions to avoid blocking the event loop.
+    code_example: |
+      // Good
+      const hash = await bcrypt.hash(password, 12);
+
+      // Bad - blocks event loop
+      const hash = bcrypt.hashSync(password, 12);
+
+  - id: L-003
+    category: improvement
+    title: Error Message Consistency
+    description: |
+      Authentication errors should use consistent structure for
+      client-side handling.
+    recommendation: |
+      Create an AuthError class extending Error with code, message,
+      and optional details properties.
+
+metrics:
+  tokens:
+    total: 15400
+    by_crew:
+      scope: 2200
+      architect: 3500
+      coder: 8500
+      tester: 1200
+
+  artifacts:
+    files_created: 6
+    lines_of_code: 520
+    test_coverage: 87.5
+
+  guardrails:
+    violations_caught: 2
+    violations_fixed: 2
+
+issues_encountered:
+  - type: rate_limit
+    crew_member: coder
+    resolution: "Waited 60s and retried"
+
+  - type: guardrail_violation
+    guardrail: security.no-hardcoded-secrets
+    resolution: "Moved API key to environment variable"
+```
+
+### Pattern Library Updates
+
+Learn can update your project's pattern library:
+
+```yaml
+# .ldf/patterns/auth-patterns.yaml
+patterns:
+  - id: PAT-AUTH-001
+    name: JWT Authentication Flow
+    description: Standard JWT auth with refresh tokens
+    source_spec: auth-feature
+    added: "2024-01-15"
+    files:
+      - src/auth/service.ts
+      - src/auth/token.ts
+```
+
+<Aside type="tip">
+Patterns discovered during Learn are surfaced to future Architect phases, helping maintain consistency across features.
+</Aside>
+
+## Learning Categories
+
+| Category | Description | Example |
+|----------|-------------|---------|
+| `pattern` | Reusable approach | "JWT handling strategy" |
+| `pitfall` | Things to avoid | "Sync bcrypt blocking" |
+| `improvement` | Enhancement ideas | "Consistent error format" |
+| `decision` | Why something was done | "Chose bcrypt over argon2" |
+| `dependency` | Library notes | "jsonwebtoken version requirements" |
+
+## Example Workflow
+
+<Steps>
+1. **Ensure implementation is complete:**
+   ```bash
+   ldf sail status
+   # ✓ scope      complete
+   # ✓ architect  complete
+   # ✓ implement  complete
+   # ○ learn      pending
+   ```
+
+2. **Verify tests pass:**
+   ```bash
+   npm test
+   ```
+
+3. **Run learn phase:**
+   ```bash
+   ldf sail learn complete
+   ```
+
+   Output:
+   ```
+   Analyzing implementation...
+
+   Collected metrics:
+     Duration: 2m 54s total
+     Tokens: 15,400 (scope: 2,200 | architect: 3,500 | coder: 8,500 | tester: 1,200)
+     Artifacts: 6 files (520 lines)
+     Test coverage: 87.5%
+
+   Extracted learnings:
+     • 2 patterns discovered
+     • 1 pitfall identified
+     • 1 improvement suggested
+
+   ✓ Learn phase complete
+   Learnings saved to .ldf/sail/learn/learnings.yaml
+   ```
+
+4. **Review learnings:**
+   ```bash
+   cat .ldf/sail/learn/learnings.yaml
+   ```
+
+5. **Complete the loop:**
+   ```bash
+   nrrv phase advance validate
+   ```
+</Steps>
+
+## Auto-Capture Mode
+
+Enable automatic learning capture in settings:
+
+```yaml
+# .ldf/settings.yaml
+sail:
+  learn:
+    # Automatically run learn after implement
+    auto_capture: true
+
+    # Categories to auto-detect
+    auto_detect:
+      - pattern
+      - pitfall
+
+    # Include code examples in learnings
+    include_examples: true
+
+    # Update pattern library
+    update_patterns: true
+```
+
+With `auto_capture: true`, learn runs automatically after implementation completes.
+
+## Learn Signals
+
+When learn completes, it emits a signal:
+
+```yaml
+signal_type: sail.phase_complete
+payload:
+  phase: learn
+  spec: "auth-feature"
+  build_status: success
+  learnings:
+    - "Discovered JWT token handling pattern"
+    - "Identified async bcrypt pitfall"
+    - "Suggested error consistency improvement"
+  risks:
+    - type: dependency
+      severity: low
+      description: "jsonwebtoken version pinned to 9.x"
+```
+
+## Using Learnings in Future Loops
+
+Learnings from past loops inform future development:
+
+1. **Pattern suggestions**: Architect phase surfaces relevant patterns
+2. **Pitfall warnings**: Implement phase warns about known issues
+3. **Metric baselines**: Learn phase compares against historical averages
+
+```bash
+# View historical learnings
+ldf learn history
+
+# Search learnings
+ldf learn search "authentication"
+```
+
+## Manual Learning Entry
+
+You can add learnings manually:
+
+```bash
+# Add a learning interactively
+ldf learn add
+
+# Add from command line
+ldf learn add --category pattern --title "Rate Limiting" \
+  --description "Use sliding window for API rate limits"
+```
+
+## Metrics Dashboard
+
+View aggregated metrics across loops:
+
+```bash
+ldf metrics summary
+```
+
+Output:
+```
+SAIL Metrics — Last 10 Loops
+
+Token Usage:
+  Total: 145,000
+  Average per loop: 14,500
+  By crew: coder (65%) | tester (20%) | architect (10%) | scope (5%)
+
+Duration:
+  Average loop: 3h 15m
+  By phase: scope (15%) | architect (20%) | implement (50%) | learn (15%)
+
+Quality:
+  Test coverage: 85.2% avg
+  Guardrail violations: 1.2 per loop avg
+
+Learnings Captured: 28
+  Patterns: 12
+  Pitfalls: 8
+  Improvements: 8
+```
+
+## Best Practices
+
+<CardGrid>
+  <Card title="Don't Skip Learn">
+    Even for small features, capture what you learned. Small insights compound over time.
+  </Card>
+  <Card title="Review Before Completing">
+    Check the generated learnings. Add context the AI might have missed.
+  </Card>
+  <Card title="Link to Patterns">
+    When a learning suggests a pattern, add it to your pattern library for reuse.
+  </Card>
+  <Card title="Track Metrics Over Time">
+    Use metrics to identify trends. Are implementation times decreasing? Is coverage improving?
+  </Card>
+</CardGrid>
+
+## Next Steps
+
+- [SAIL Overview](/sail/overview/) — Return to SAIL introduction
+- [Loops](/framework/loops/) — Complete the development loop
+- [Crew System](/crew/overview/) — Deep dive into crew members

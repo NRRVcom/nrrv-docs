@@ -1,0 +1,49 @@
+/* NRRV Documentation Custom Styles */
+
+:root {
+  /* Brand colors */
+  --sl-color-accent-low: #1a365d;
+  --sl-color-accent: #3182ce;
+  --sl-color-accent-high: #63b3ed;
+
+  /* Custom fonts */
+  --sl-font: 'Inter', system-ui, sans-serif;
+  --sl-font-mono: 'JetBrains Mono', monospace;
+}
+
+:root[data-theme='dark'] {
+  --sl-color-accent-low: #1e40af;
+  --sl-color-accent: #60a5fa;
+  --sl-color-accent-high: #93c5fd;
+}
+
+/* Code blocks */
+.expressive-code pre {
+  border-radius: 0.5rem;
+}
+
+/* Hero section styling */
+.hero {
+  text-align: center;
+  padding: 4rem 1rem;
+}
+
+/* Phase badges */
+.phase-badge {
+  display: inline-block;
+  padding: 0.25rem 0.75rem;
+  border-radius: 9999px;
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+.phase-navigate { background: #fef3c7; color: #92400e; }
+.phase-reason { background: #dbeafe; color: #1e40af; }
+.phase-realize { background: #d1fae5; color: #065f46; }
+.phase-validate { background: #ede9fe; color: #5b21b6; }
+
+/* SAIL phase colors */
+.sail-scope { background: #fce7f3; color: #9d174d; }
+.sail-architect { background: #e0e7ff; color: #3730a3; }
+.sail-implement { background: #ccfbf1; color: #0f766e; }
+.sail-learn { background: #fef9c3; color: #854d0e; }

@@ -1,0 +1,367 @@
+---
+title: Implement Phase
+description: Generate code, tests, and documentation using crew members.
+---
+
+import { Aside, Steps, Tabs, TabItem, Card, CardGrid } from '@astrojs/starlight/components';
+
+# Implement Phase
+
+The **Implement** phase generates actual code using crew members—specialized AI agents that produce code, tests, and documentation.
+
+## Purpose
+
+Implement transforms technical designs into working code:
+
+```
+┌─────────────────────┐         ┌─────────────────────────┐
+│  Architect Outputs  │         │   Implementation        │
+│                     │         │                         │
+│ - Design Document   │  ───▶   │ - Source Code           │
+│ - Components        │         │ - Unit Tests            │
+│ - API Contracts     │         │ - Integration Tests     │
+│                     │         │ - Documentation         │
+└─────────────────────┘         └─────────────────────────┘
+```
+
+## Running Implement
+
+Unlike other SAIL phases, Implement uses **crew dispatch**:
+
+```bash
+# Dispatch the coder crew member
+ldf crew dispatch coder
+
+# Dispatch with options
+ldf crew dispatch coder --reasoning high --max-tokens 16000
+
+# Dispatch multiple crew members
+ldf crew dispatch coder tester
+```
+
+## Crew Members for Implementation
+
+<CardGrid>
+  <Card title="coder" icon="laptop">
+    Generates implementation code based on architect specs.
+  </Card>
+  <Card title="tester" icon="approve-check">
+    Generates unit and integration tests.
+  </Card>
+  <Card title="reviewer" icon="magnifier">
+    Reviews generated code for issues.
+  </Card>
+  <Card title="documenter" icon="document">
+    Generates API documentation.
+  </Card>
+</CardGrid>
+
+### Coder Crew Member
+
+The `coder` is the primary implementation crew member:
+
+```bash
+# Basic dispatch
+ldf crew dispatch coder
+
+# With higher reasoning for complex code
+ldf crew dispatch coder --reasoning high
+
+# With specific temperature
+ldf crew dispatch coder --temperature 0.5
+```
+
+Coder produces:
+- Implementation files based on component specs
+- Inline documentation
+- Type definitions
+
+### Tester Crew Member
+
+The `tester` generates tests based on TDD anchors:
+
+```bash
+# Generate tests
+ldf crew dispatch tester
+
+# Focus on specific anchor types
+ldf crew dispatch tester --types unit,integration
+```
+
+Tester produces:
+- Unit tests for each component
+- Integration tests for API endpoints
+- Test fixtures and mocks
+
+## Example Workflow
+
+<Steps>
+1. **Ensure architect is complete:**
+   ```bash
+   ldf sail status
+   # ✓ scope      complete
+   # ✓ architect  complete
+   # ○ implement  pending
+   ```
+
+2. **Dispatch coder:**
+   ```bash
+   ldf crew dispatch coder
+   ```
+
+   Output:
+   ```
+   Dispatching coder for auth-feature...
+
+   Provider: claude (claude-sonnet-4-20250514)
+   Reasoning: medium
+   Max tokens: 16000
+
+   Generating src/auth/service.ts... done (145 lines)
+   Generating src/auth/token.ts... done (89 lines)
+   Generating src/auth/controller.ts... done (124 lines)
+
+   ✓ Dispatch completed in 45.2s
+   Tokens: 8,500 input / 3,200 output
+   Artifacts: 3 files (358 lines)
+   ```
+
+3. **Dispatch tester:**
+   ```bash
+   ldf crew dispatch tester
+   ```
+
+4. **Review generated code:**
+   ```bash
+   # View generated files
+   ls src/auth/
+
+   # Run tests
+   npm test
+   ```
+
+5. **Proceed to learn:**
+   ```bash
+   ldf sail learn complete
+   ```
+</Steps>
+
+## Dispatch Options
+
+### Reasoning Level
+
+Control how much the AI "thinks" before responding:
+
+```bash
+# Minimal reasoning (faster, cheaper)
+ldf crew dispatch coder --reasoning none
+
+# Balanced (default)
+ldf crew dispatch coder --reasoning medium
+
+# Maximum reasoning (slower, better for complex code)
+ldf crew dispatch coder --reasoning high
+
+# Extended reasoning for very complex tasks
+ldf crew dispatch coder --reasoning xhigh
+```
+
+| Level | Use Case | Trade-off |
+|-------|----------|-----------|
+| `none` | Simple, straightforward code | Fast but may miss edge cases |
+| `low` | Routine implementations | Good balance for common patterns |
+| `medium` | Standard complexity (default) | Balanced quality/speed |
+| `high` | Complex logic, algorithms | Higher quality, slower |
+| `xhigh` | Critical, intricate code | Best quality, slowest |
+
+### Token Limits
+
+Control maximum output size:
+
+```bash
+# Smaller output
+ldf crew dispatch coder --max-tokens 8000
+
+# Larger output for complex features
+ldf crew dispatch coder --max-tokens 32000
+```
+
+### Provider Selection
+
+Use a specific provider:
+
+```bash
+# Use Claude
+ldf crew dispatch coder --provider claude
+
+# Use OpenAI
+ldf crew dispatch coder --provider openai --model gpt-4o
+```
+
+## Dispatch Signals
+
+Crew dispatch emits detailed signals:
+
+<Tabs>
+  <TabItem label="Started">
+```yaml
+signal_type: crew.dispatch_started
+payload:
+  dispatch_id: "d-abc123"
+  crew_member: coder
+  spec: "auth-feature"
+  phase: implement
+  provider:
+    name: claude
+    model: claude-sonnet-4-20250514
+  config:
+    reasoning: medium
+    max_tokens: 16000
+    temperature: 0.7
+  context:
+    artifacts_provided:
+      - ".ldf/sail/scope/user-stories.yaml"
+      - ".ldf/sail/architect/components.yaml"
+```
+  </TabItem>
+  <TabItem label="Completed">
+```yaml
+signal_type: crew.dispatch_completed
+payload:
+  dispatch_id: "d-abc123"
+  crew_member: coder
+  spec: "auth-feature"
+  phase: implement
+  provider:
+    name: claude
+    model: claude-sonnet-4-20250514
+  result:
+    status: success
+    duration_ms: 45230
+  tokens:
+    input: 8500
+    output: 3200
+    total: 11700
+    cache_read: 2000
+  artifacts_produced:
+    - path: "src/auth/service.ts"
+      type: typescript
+      lines: 145
+    - path: "src/auth/token.ts"
+      type: typescript
+      lines: 89
+    - path: "src/auth/controller.ts"
+      type: typescript
+      lines: 124
+```
+  </TabItem>
+  <TabItem label="Failed">
+```yaml
+signal_type: crew.dispatch_failed
+payload:
+  dispatch_id: "d-abc123"
+  crew_member: coder
+  spec: "auth-feature"
+  provider:
+    name: claude
+    model: claude-sonnet-4-20250514
+  error:
+    type: rate_limit
+    message: "Rate limit exceeded"
+    retryable: true
+    retry_after_seconds: 60
+```
+  </TabItem>
+</Tabs>
+
+## Guardrails
+
+Generated code passes through guardrails before being written:
+
+```bash
+$ ldf crew dispatch coder
+...
+⚠️  Guardrail violation: security.no-hardcoded-secrets
+   File: src/auth/config.ts, Line: 15
+   Message: Potential hardcoded API key detected
+   Suggestion: Use environment variables instead
+
+Blocked: 1 error, 0 warnings
+Fix issues and retry, or override with --force
+```
+
+See [Guardrails](/framework/guardrails/) for details.
+
+## Re-running Implementation
+
+You can re-run implementation to regenerate code:
+
+```bash
+# Regenerate all
+ldf crew dispatch coder
+
+# Regenerate specific components
+ldf crew dispatch coder --components AuthService,TokenService
+
+# Preserve existing files
+ldf crew dispatch coder --no-overwrite
+```
+
+<Aside type="caution">
+Re-running dispatch will overwrite existing files by default. Use version control to preserve your changes.
+</Aside>
+
+## Customizing Implementation
+
+Configure default behavior in `.ldf/settings.yaml`:
+
+```yaml
+sail:
+  implement:
+    # Default crew members to dispatch
+    default_crew:
+      - coder
+      - tester
+
+    # Default reasoning level
+    default_reasoning: medium
+
+    # Default max tokens
+    default_max_tokens: 16000
+
+    # Auto-run tests after generation
+    auto_test: true
+
+    # Run guardrails automatically
+    auto_guardrails: true
+```
+
+## TDD Coverage Tracking
+
+After implementation, check TDD anchor coverage:
+
+```bash
+ldf tdd status
+```
+
+Output:
+```
+TDD Coverage — auth-feature
+  Total anchors: 12
+  Coverage: 83.3%
+
+  By Status:
+    ✓ passing:  10
+    ✗ failing:  0
+    ○ pending:  2
+
+  Gaps:
+    - TDD-011: Password reset sends email (high)
+    - TDD-012: Rate limiting on login (medium)
+```
+
+## Next Steps
+
+- [Learn](/sail/learn/) — Capture implementation insights
+- [Crew System](/crew/overview/) — Deep dive into crew members
+- [Guardrails](/framework/guardrails/) — Quality enforcement

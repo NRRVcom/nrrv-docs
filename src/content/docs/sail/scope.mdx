@@ -1,0 +1,234 @@
+---
+title: Scope Phase
+description: Extract requirements, user stories, and TDD anchors from your spec.
+---
+
+import { Aside, Steps, Tabs, TabItem } from '@astrojs/starlight/components';
+
+# Scope Phase
+
+The **Scope** phase extracts formal requirements from your spec file, producing user stories and TDD anchors that guide implementation.
+
+## Purpose
+
+Scope transforms informal requirements into structured artifacts:
+
+```
+┌─────────────────────┐         ┌─────────────────────────┐
+│   Spec File         │         │   Scope Outputs         │
+│                     │         │                         │
+│ - Title             │  ───▶   │ - User Stories (YAML)   │
+│ - Description       │         │ - TDD Anchors (YAML)    │
+│ - Requirements      │         │ - Acceptance Criteria   │
+│ - Notes             │         │                         │
+└─────────────────────┘         └─────────────────────────┘
+```
+
+## Running Scope
+
+```bash
+# Complete the scope phase
+ldf sail scope complete
+
+# With a specific spec
+ldf sail scope complete --spec auth-feature
+
+# Dry run to preview
+ldf sail scope complete --dry-run
+```
+
+## What Scope Produces
+
+### User Stories
+
+User stories follow the standard format:
+
+```yaml
+# .ldf/sail/scope/user-stories.yaml
+stories:
+  - id: US-001
+    title: User Registration
+    as_a: new user
+    i_want: to create an account with my email and password
+    so_that: I can access the application
+    acceptance_criteria:
+      - Email must be valid format
+      - Password must be at least 8 characters
+      - Confirmation email is sent
+    priority: high
+
+  - id: US-002
+    title: User Login
+    as_a: registered user
+    i_want: to log in with my credentials
+    so_that: I can access my account
+    acceptance_criteria:
+      - Valid credentials return a JWT token
+      - Invalid credentials return 401 error
+      - Token expires after 24 hours
+    priority: high
+```
+
+### TDD Anchors
+
+TDD anchors define tests that should be written:
+
+```yaml
+# .ldf/sail/scope/tdd-anchors.yaml
+anchors:
+  - id: TDD-001
+    story_id: US-001
+    type: unit
+    anchor: "Registration service validates email format"
+    priority: critical
+    status: pending
+
+  - id: TDD-002
+    story_id: US-001
+    type: unit
+    anchor: "Registration service rejects weak passwords"
+    priority: high
+    status: pending
+
+  - id: TDD-003
+    story_id: US-001
+    type: integration
+    anchor: "Registration endpoint returns 201 with valid data"
+    priority: critical
+    status: pending
+
+  - id: TDD-004
+    story_id: US-002
+    type: unit
+    anchor: "Login service returns JWT for valid credentials"
+    priority: critical
+    status: pending
+```
+
+<Aside type="tip">
+TDD anchors are tracked throughout implementation. The `tdd.coverage_report` signal shows which anchors have passing tests.
+</Aside>
+
+## TDD Anchor Types
+
+| Type | Purpose | Example |
+|------|---------|---------|
+| `unit` | Test individual functions/methods | "Password hasher uses bcrypt" |
+| `integration` | Test component interactions | "API endpoint returns correct status" |
+| `acceptance` | Test user-facing behavior | "User can complete registration flow" |
+
+## Anchor Priorities
+
+| Priority | Meaning |
+|----------|---------|
+| `critical` | Must have passing tests before completion |
+| `high` | Should have tests, blocks deployment |
+| `medium` | Recommended to have tests |
+| `low` | Nice to have, can defer |
+
+## Example Workflow
+
+<Steps>
+1. **Create your spec file:**
+   ```yaml
+   # .ldf/specs/auth-feature.yaml
+   title: User Authentication
+   description: |
+     Implement user registration and login with JWT tokens.
+
+   requirements:
+     - Users can register with email/password
+     - Passwords are hashed with bcrypt
+     - Login returns JWT tokens
+     - Tokens expire after 24 hours
+
+   acceptance_criteria:
+     - [ ] Registration endpoint works
+     - [ ] Login endpoint works
+     - [ ] Invalid credentials rejected
+   ```
+
+2. **Run scope phase:**
+   ```bash
+   ldf sail scope complete
+   ```
+
+3. **Review generated artifacts:**
+   ```bash
+   cat .ldf/sail/scope/user-stories.yaml
+   cat .ldf/sail/scope/tdd-anchors.yaml
+   ```
+
+4. **Proceed to architect:**
+   ```bash
+   ldf sail architect complete
+   ```
+</Steps>
+
+## Customizing Scope
+
+Configure scope behavior in `.ldf/settings.yaml`:
+
+```yaml
+sail:
+  scope:
+    # Automatically generate TDD anchors
+    auto_tdd: true
+
+    # Minimum anchors per user story
+    min_anchors_per_story: 2
+
+    # Default priority for generated anchors
+    default_priority: high
+
+    # Include acceptance test anchors
+    include_acceptance_tests: true
+```
+
+## Scope Signals
+
+When scope completes, it emits a signal:
+
+```yaml
+signal_type: sail.phase_complete
+payload:
+  phase: scope
+  spec: "auth-feature"
+  build_status: success
+  crew_members_used:
+    - scope
+  learnings:
+    - "Extracted 4 user stories with 12 TDD anchors"
+```
+
+## Re-running Scope
+
+If your spec changes, you can re-run scope:
+
+```bash
+# Re-run will overwrite existing artifacts
+ldf sail scope complete
+
+# Preview changes first
+ldf sail scope complete --dry-run
+```
+
+<Aside>
+Re-running scope doesn't affect TDD anchor status. If tests were already written and passing, their status is preserved.
+</Aside>
+
+## Integration with Implement
+
+During the Implement phase, crew members use scope artifacts:
+
+1. **User stories** provide context for code generation
+2. **TDD anchors** guide test creation
+3. **Acceptance criteria** define completion
+
+The coder crew member receives the full scope context when dispatched.
+
+## Next Steps
+
+- [Architect](/sail/architect/) — Design technical approach
+- [TDD Coverage](/sail/tdd/) — Tracking test coverage
+- [Crew System](/crew/overview/) — How crew members use scope

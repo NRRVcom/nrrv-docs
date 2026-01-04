@@ -1,0 +1,385 @@
+---
+title: nrrv CLI Reference
+description: Complete reference for the nrrv command-line interface.
+---
+
+import { Aside, Tabs, TabItem } from '@astrojs/starlight/components';
+
+# nrrv CLI Reference
+
+The `nrrv` CLI manages the development lifecycle—loops, phases, and status tracking.
+
+## Installation
+
+```bash
+# Install globally
+pnpm add -g @nrrv/cli
+
+# Verify installation
+nrrv --version
+```
+
+## Commands
+
+### nrrv loop init
+
+Initialize a new development loop.
+
+```bash
+nrrv loop init [options]
+```
+
+**Options:**
+
+| Option | Description | Default |
+|--------|-------------|---------|
+| `--goals <text>` | Set loop goals (repeatable) | None |
+| `--phase <phase>` | Starting phase | `navigate` |
+
+**Examples:**
+
+```bash
+# Basic initialization
+nrrv loop init
+
+# With goals
+nrrv loop init --goals "Add user authentication"
+
+# With multiple goals
+nrrv loop init --goals "Add auth" --goals "Add password reset"
+
+# Start in specific phase
+nrrv loop init --phase reason
+```
+
+**Signals Emitted:**
+
+- `lifecycle.loop_start`
+
+---
+
+### nrrv loop status
+
+Display current loop status.
+
+```bash
+nrrv loop status [options]
+```
+
+**Options:**
+
+| Option | Description |
+|--------|-------------|
+| `--verbose`, `-v` | Show detailed information |
+| `--json` | Output as JSON |
+
+**Examples:**
+
+```bash
+# Basic status
+nrrv loop status
+
+# Detailed status
+nrrv loop status --verbose
+
+# JSON output (for scripting)
+nrrv loop status --json
+```
+
+**Output:**
+
+```
+Loop #5 — realize
+Goals: Add user authentication, Implement password reset
+Started: 2024-01-15T09:00:00Z
+Duration: 2h 30m
+Phase: realize (SAIL: implement)
+```
+
+**Verbose Output:**
+
+```
+Loop #5 — realize
+Goals:
+  • Add user authentication
+  • Implement password reset
+Started: 2024-01-15T09:00:00Z
+Duration: 2h 30m
+
+Phase Timeline:
+  navigate    09:00 - 09:45  (45m)
+  reason      09:45 - 11:05  (1h 20m)
+  realize     11:05 - now    (1h 25m) ← current
+
+Signals Emitted: 18
+Waivers: 1
+```
+
+---
+
+### nrrv loop complete
+
+Complete the current loop with an outcome.
+
+```bash
+nrrv loop complete --outcome <outcome> [options]
+```
+
+**Options:**
+
+| Option | Description | Required |
+|--------|-------------|----------|
+| `--outcome <type>` | Loop outcome | Yes |
+| `--reason <text>` | Explanation for outcome | No |
+
+**Outcomes:**
+
+| Outcome | Description |
+|---------|-------------|
+| `continue` | Success, proceed with next work |
+| `adjust` | Partial success, minor changes needed |
+| `pivot` | Significant issues, major direction change |
+
+**Examples:**
+
+```bash
+# Complete successfully
+nrrv loop complete --outcome continue
+
+# Complete with reason
+nrrv loop complete --outcome adjust --reason "Need to add rate limiting"
+
+# Pivot with explanation
+nrrv loop complete --outcome pivot --reason "Requirements changed significantly"
+```
+
+**Signals Emitted:**
+
+- `lifecycle.loop_complete`
+
+---
+
+### nrrv loop history
+
+View past completed loops.
+
+```bash
+nrrv loop history [loop_id] [options]
+```
+
+**Options:**
+
+| Option | Description |
+|--------|-------------|
+| `--limit <n>` | Number of loops to show |
+| `--json` | Output as JSON |
+
+**Examples:**
+
+```bash
+# List recent loops
+nrrv loop history
+
+# View specific loop
+nrrv loop history 5
+
+# Limit results
+nrrv loop history --limit 5
+```
+
+---
+
+### nrrv phase advance
+
+Advance to the next phase.
+
+```bash
+nrrv phase advance <phase> [options]
+```
+
+**Arguments:**
+
+| Argument | Description |
+|----------|-------------|
+| `phase` | Target phase (`reason`, `realize`, `validate`) |
+
+**Options:**
+
+| Option | Description |
+|--------|-------------|
+| `--force` | Skip validation warnings |
+
+**Valid Transitions:**
+
+```
+navigate → reason → realize → validate
+```
+
+**Examples:**
+
+```bash
+# Advance to reason phase
+nrrv phase advance reason
+
+# Skip warnings
+nrrv phase advance reason --force
+```
+
+**Validation:**
+
+The CLI validates phase transitions and warns about missing outputs:
+
+```bash
+$ nrrv phase advance reason
+⚠️  Warning: No spec file found (missing_spec)
+Continue anyway? [y/N]
+```
+
+**Signals Emitted:**
+
+- `lifecycle.phase_transition`
+- `lifecycle.waiver` (if warnings acknowledged)
+
+---
+
+### nrrv phase current
+
+Show the current phase.
+
+```bash
+nrrv phase current
+```
+
+**Output:**
+
+```
+realize
+```
+
+---
+
+### nrrv signals
+
+View the signal log.
+
+```bash
+nrrv signals [options]
+```
+
+**Options:**
+
+| Option | Description |
+|--------|-------------|
+| `--type <type>` | Filter by signal type |
+| `--limit <n>` | Number of signals to show |
+| `--since <time>` | Signals after timestamp |
+| `--json` | Output as JSON |
+
+**Examples:**
+
+```bash
+# List recent signals
+nrrv signals
+
+# Filter by type
+nrrv signals --type lifecycle.phase_transition
+
+# Signals from last hour
+nrrv signals --since "1 hour ago"
+
+# JSON output
+nrrv signals --limit 10 --json
+```
+
+---
+
+### nrrv config
+
+Manage NRRV configuration.
+
+```bash
+nrrv config <subcommand>
+```
+
+**Subcommands:**
+
+```bash
+# Show current config
+nrrv config show
+
+# Set a value
+nrrv config set actor "dev@example.com"
+
+# Get a value
+nrrv config get actor
+```
+
+---
+
+## Global Options
+
+These options are available on all commands:
+
+| Option | Description |
+|--------|-------------|
+| `--help`, `-h` | Show help |
+| `--version`, `-V` | Show version |
+| `--verbose`, `-v` | Verbose output |
+| `--quiet`, `-q` | Suppress output |
+| `--cwd <path>` | Working directory |
+
+## Environment Variables
+
+| Variable | Description |
+|----------|-------------|
+| `NRRV_ACTOR` | Override actor for signals (default: git email) |
+| `NRRV_LOG_LEVEL` | Logging level (`debug`, `info`, `warn`, `error`) |
+
+## Exit Codes
+
+| Code | Meaning |
+|------|---------|
+| 0 | Success |
+| 1 | General error |
+| 2 | Invalid arguments |
+| 3 | Loop not found |
+| 4 | Phase transition error |
+
+## Examples
+
+### Complete Workflow
+
+```bash
+# Start a new loop
+nrrv loop init --goals "Add user authentication"
+
+# Check status
+nrrv loop status
+
+# Advance through phases
+nrrv phase advance reason
+nrrv phase advance realize
+nrrv phase advance validate
+
+# Complete the loop
+nrrv loop complete --outcome continue
+```
+
+### Scripting
+
+```bash
+# Check if in specific phase
+if [ "$(nrrv phase current)" = "realize" ]; then
+  echo "Ready for implementation"
+fi
+
+# Get loop status as JSON
+status=$(nrrv loop status --json)
+loop_id=$(echo $status | jq -r '.loop_id')
+```
+
+## See Also
+
+- [ldf CLI Reference](/cli/ldf/) — AI-assisted development commands
+- [Loops](/framework/loops/) — Loop lifecycle documentation
+- [Phases](/framework/phases/) — Phase documentation

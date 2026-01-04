@@ -1,0 +1,607 @@
+---
+title: ldf CLI Reference
+description: Complete reference for the ldf command-line interface.
+---
+
+import { Aside, Tabs, TabItem } from '@astrojs/starlight/components';
+
+# ldf CLI Reference
+
+The `ldf` CLI manages AI-assisted development—SAIL execution, crew dispatch, specs, and guardrails.
+
+## Installation
+
+```bash
+# Install globally
+pnpm add -g @ldf/cli
+
+# Install at least one provider
+pnpm add -g @ldf/provider-claude
+
+# Set API key
+export ANTHROPIC_API_KEY="sk-ant-..."
+
+# Verify installation
+ldf --version
+```
+
+## Commands
+
+### ldf init
+
+Initialize LDF in a project.
+
+```bash
+ldf init [options]
+```
+
+**Options:**
+
+| Option | Description |
+|--------|-------------|
+| `--provider <name>` | Default provider |
+| `--model <name>` | Default model |
+
+**Examples:**
+
+```bash
+# Basic initialization
+ldf init
+
+# With provider preference
+ldf init --provider claude --model claude-sonnet-4-20250514
+```
+
+**Creates:**
+
+```
+.ldf/
+├── settings.yaml
+└── specs/
+```
+
+---
+
+## SAIL Commands
+
+### ldf sail scope complete
+
+Run the Scope phase to extract requirements.
+
+```bash
+ldf sail scope complete [options]
+```
+
+**Options:**
+
+| Option | Description |
+|--------|-------------|
+| `--spec <name>` | Target spec file |
+| `--dry-run` | Preview without execution |
+
+**Examples:**
+
+```bash
+ldf sail scope complete
+ldf sail scope complete --spec auth-feature
+ldf sail scope complete --dry-run
+```
+
+---
+
+### ldf sail architect complete
+
+Run the Architect phase to design the solution.
+
+```bash
+ldf sail architect complete [options]
+```
+
+**Options:**
+
+| Option | Description |
+|--------|-------------|
+| `--spec <name>` | Target spec file |
+| `--analyze-existing` | Analyze existing codebase |
+| `--dry-run` | Preview without execution |
+
+**Examples:**
+
+```bash
+ldf sail architect complete
+ldf sail architect complete --analyze-existing
+```
+
+---
+
+### ldf sail learn complete
+
+Run the Learn phase to capture insights.
+
+```bash
+ldf sail learn complete [options]
+```
+
+**Options:**
+
+| Option | Description |
+|--------|-------------|
+| `--spec <name>` | Target spec file |
+
+**Examples:**
+
+```bash
+ldf sail learn complete
+```
+
+---
+
+### ldf sail status
+
+Show SAIL phase status.
+
+```bash
+ldf sail status [options]
+```
+
+**Options:**
+
+| Option | Description |
+|--------|-------------|
+| `--spec <name>` | Target spec file |
+| `--json` | Output as JSON |
+
+**Output:**
+
+```
+SAIL Status — auth-feature
+  ✓ scope      complete  (2m 15s)
+  ✓ architect  complete  (3m 42s)
+  ⋯ implement  in progress
+  ○ learn      pending
+```
+
+---
+
+## Crew Commands
+
+### ldf crew dispatch
+
+Dispatch crew members for tasks.
+
+```bash
+ldf crew dispatch <members...> [options]
+```
+
+**Arguments:**
+
+| Argument | Description |
+|----------|-------------|
+| `members` | Crew members to dispatch |
+
+**Options:**
+
+| Option | Description | Default |
+|--------|-------------|---------|
+| `--spec <name>` | Target spec | Active spec |
+| `--provider <name>` | LLM provider | Default provider |
+| `--model <name>` | Model to use | Provider default |
+| `--reasoning <level>` | Reasoning level | `medium` |
+| `--max-tokens <n>` | Max output tokens | `16000` |
+| `--temperature <n>` | Response temperature | `0.7` |
+| `--dry-run` | Preview without execution | |
+| `--force` | Override guardrail blocks | |
+
+**Reasoning Levels:**
+
+| Level | Description |
+|-------|-------------|
+| `none` | No reasoning |
+| `low` | Brief reasoning |
+| `medium` | Balanced (default) |
+| `high` | Extended reasoning |
+| `xhigh` | Maximum reasoning |
+
+**Examples:**
+
+```bash
+# Dispatch single crew member
+ldf crew dispatch coder
+
+# Dispatch multiple
+ldf crew dispatch coder tester
+
+# With options
+ldf crew dispatch coder --reasoning high --max-tokens 32000
+
+# Use specific provider
+ldf crew dispatch coder --provider openai --model gpt-4o
+
+# Dry run
+ldf crew dispatch coder --dry-run
+```
+
+---
+
+### ldf crew status
+
+Show crew dispatch status.
+
+```bash
+ldf crew status [options]
+```
+
+**Output:**
+
+```
+Crew Status — auth-feature
+
+Recent Dispatches:
+  coder     ✓ success   45.2s   8,500 in / 3,200 out
+  tester    ✓ success   23.1s   4,200 in / 1,800 out
+
+Active Dispatches:
+  (none)
+
+Provider: claude (claude-sonnet-4-20250514)
+```
+
+---
+
+## Spec Commands
+
+### ldf spec create
+
+Create a new spec file.
+
+```bash
+ldf spec create [name] [options]
+```
+
+**Options:**
+
+| Option | Description |
+|--------|-------------|
+| `--set` | Set as active spec |
+| `--template <name>` | Use template |
+
+**Examples:**
+
+```bash
+# Create with auto-generated name
+ldf spec create
+
+# Create with name
+ldf spec create auth-feature
+
+# Create and set as active
+ldf spec create auth-feature --set
+```
+
+---
+
+### ldf spec list
+
+List all specs.
+
+```bash
+ldf spec list
+```
+
+**Output:**
+
+```
+Specs — 3 files
+
+  auth-feature.yaml     (active)
+  user-profile.yaml
+  settings-page.yaml
+```
+
+---
+
+### ldf spec set
+
+Set the active spec.
+
+```bash
+ldf spec set <name>
+```
+
+**Examples:**
+
+```bash
+ldf spec set auth-feature
+```
+
+---
+
+### ldf spec edit
+
+Open spec in editor.
+
+```bash
+ldf spec edit [name]
+```
+
+---
+
+## Provider Commands
+
+### ldf providers
+
+List all providers.
+
+```bash
+ldf providers
+```
+
+**Output:**
+
+```
+LLM Providers — 2 installed, 1 available
+
+Installed
+  ● claude       Claude (Anthropic)
+  ● openai       OpenAI
+
+Available (not installed)
+  ○ gemini       @ldf/provider-gemini
+```
+
+---
+
+### ldf providers check
+
+Validate provider credentials.
+
+```bash
+ldf providers check <provider>
+```
+
+**Examples:**
+
+```bash
+ldf providers check claude
+```
+
+**Output:**
+
+```
+Checking claude provider...
+
+✓ Provider installed: @ldf/provider-claude
+✓ API key found: ANTHROPIC_API_KEY
+✓ Credentials valid (API test passed)
+
+Available models:
+  • claude-sonnet-4-20250514 (default)
+  • claude-opus-4-5-20251101
+```
+
+---
+
+### ldf providers models
+
+List models for a provider.
+
+```bash
+ldf providers models <provider>
+```
+
+**Examples:**
+
+```bash
+ldf providers models claude
+```
+
+**Output:**
+
+```
+Claude Models
+
+Model                      Context    Capabilities
+claude-opus-4-5-20251101   200K       reasoning, vision, code
+claude-sonnet-4-20250514   200K       reasoning, vision, code ← default
+claude-haiku-3-5-20241022  200K       vision, code
+```
+
+---
+
+## Guardrail Commands
+
+### ldf guardrails check
+
+Run guardrail checks on files.
+
+```bash
+ldf guardrails check <paths...> [options]
+```
+
+**Options:**
+
+| Option | Description |
+|--------|-------------|
+| `--rules <list>` | Specific rules to run |
+| `--fix` | Auto-fix violations |
+| `--json` | Output as JSON |
+
+**Examples:**
+
+```bash
+# Check directory
+ldf guardrails check src/
+
+# Check specific files
+ldf guardrails check src/auth/service.ts
+
+# Run specific rules
+ldf guardrails check src/ --rules security,style
+
+# Auto-fix
+ldf guardrails check src/ --fix
+```
+
+**Output:**
+
+```
+Guardrail Check — src/
+
+✗ security.no-hardcoded-secrets (error)
+  src/auth/config.ts:15
+  Potential hardcoded API key detected
+  → Use environment variables instead
+
+⚠ style.max-file-length (warning)
+  src/auth/service.ts
+  File exceeds 300 lines (current: 345)
+
+Summary: 1 error, 1 warning
+```
+
+---
+
+### ldf guardrails list
+
+List available guardrails.
+
+```bash
+ldf guardrails list
+```
+
+---
+
+## TDD Commands
+
+### ldf tdd status
+
+Show TDD anchor coverage.
+
+```bash
+ldf tdd status [options]
+```
+
+**Options:**
+
+| Option | Description |
+|--------|-------------|
+| `--spec <name>` | Target spec |
+
+**Output:**
+
+```
+TDD Coverage — auth-feature
+  Total anchors: 12
+  Coverage: 83.3%
+
+  By Status:
+    ✓ passing:  10
+    ✗ failing:  0
+    ○ pending:  2
+
+  Gaps:
+    - TDD-011: Password reset sends email (high)
+    - TDD-012: Rate limiting on login (medium)
+```
+
+---
+
+## Configuration Commands
+
+### ldf config show
+
+Show current configuration.
+
+```bash
+ldf config show
+```
+
+---
+
+### ldf config set
+
+Set configuration value.
+
+```bash
+ldf config set <key> <value>
+```
+
+**Examples:**
+
+```bash
+ldf config set crew.default_provider claude
+ldf config set crew.default_reasoning high
+```
+
+---
+
+## Global Options
+
+| Option | Description |
+|--------|-------------|
+| `--help`, `-h` | Show help |
+| `--version`, `-V` | Show version |
+| `--verbose`, `-v` | Verbose output |
+| `--quiet`, `-q` | Suppress output |
+| `--cwd <path>` | Working directory |
+
+## Environment Variables
+
+| Variable | Description |
+|----------|-------------|
+| `ANTHROPIC_API_KEY` | Claude API key |
+| `OPENAI_API_KEY` | OpenAI API key |
+| `GOOGLE_API_KEY` | Gemini API key |
+| `LDF_LOG_LEVEL` | Logging level |
+
+## Exit Codes
+
+| Code | Meaning |
+|------|---------|
+| 0 | Success |
+| 1 | General error |
+| 2 | Invalid arguments |
+| 3 | Provider error |
+| 4 | Guardrail violation |
+
+## Examples
+
+### Complete SAIL Workflow
+
+```bash
+# Create spec
+ldf spec create auth-feature --set
+
+# Run SAIL phases
+ldf sail scope complete
+ldf sail architect complete
+ldf crew dispatch coder
+ldf crew dispatch tester
+ldf sail learn complete
+
+# Check quality
+ldf guardrails check src/auth/
+ldf tdd status
+```
+
+### Provider Management
+
+```bash
+# Check provider status
+ldf providers
+
+# Validate credentials
+ldf providers check claude
+
+# List models
+ldf providers models claude
+
+# Use different provider for dispatch
+ldf crew dispatch coder --provider openai
+```
+
+## See Also
+
+- [nrrv CLI Reference](/cli/nrrv/) — Lifecycle management commands
+- [SAIL Overview](/sail/overview/) — SAIL phase documentation
+- [Crew System](/crew/overview/) — Crew member documentation

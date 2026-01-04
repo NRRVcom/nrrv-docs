@@ -1,0 +1,330 @@
+---
+title: Captain
+description: The orchestration layer for crew dispatch and coordination.
+---
+
+import { Aside, Steps, Tabs, TabItem } from '@astrojs/starlight/components';
+
+# Captain
+
+The **Captain** is the orchestration layer that coordinates crew member dispatch, manages providers, and handles complex workflows.
+
+## What Is the Captain?
+
+The Captain provides:
+
+- **Dispatch coordination**: Manages crew member execution
+- **Provider management**: Selects and configures LLM providers
+- **Context assembly**: Gathers relevant artifacts for crew
+- **Signal emission**: Records all activity for tracking
+
+```
+┌─────────────────────────────────────────────────────────┐
+│                       Captain                            │
+├─────────────────────────────────────────────────────────┤
+│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐  │
+│  │   Context    │  │   Provider   │  │    Signal    │  │
+│  │   Assembly   │  │   Selection  │  │   Emission   │  │
+│  └──────────────┘  └──────────────┘  └──────────────┘  │
+├─────────────────────────────────────────────────────────┤
+│                    Crew Members                          │
+│   scope  │  architect  │  coder  │  tester  │  reviewer │
+└─────────────────────────────────────────────────────────┘
+```
+
+## Creating a Captain
+
+The Captain is created via an async factory:
+
+```typescript
+import { Captain } from '@ldf/core';
+
+// Create with default options
+const captain = await Captain.create();
+
+// Create with custom options
+const captain = await Captain.create({
+  provider: 'claude',
+  model: 'claude-sonnet-4-20250514',
+  reasoning: 'high',
+});
+```
+
+<Aside>
+The Captain uses an async factory pattern because provider loading is asynchronous. This ensures providers are fully initialized before dispatch.
+</Aside>
+
+## Dispatching Crew Members
+
+### Single Dispatch
+
+```typescript
+const result = await captain.dispatch('coder', {
+  spec: 'auth-feature',
+  maxTokens: 16000,
+});
+
+console.log(result.status); // 'success' | 'partial' | 'failed'
+console.log(result.artifacts); // Generated files
+console.log(result.tokens); // Token usage
+```
+
+### Multiple Dispatch
+
+Dispatch multiple crew members in sequence:
+
+```typescript
+const results = await captain.dispatchMany(['coder', 'tester'], {
+  spec: 'auth-feature',
+});
+
+for (const result of results) {
+  console.log(`${result.crewMember}: ${result.status}`);
+}
+```
+
+### Parallel Dispatch
+
+Dispatch independent crew members in parallel:
+
+```typescript
+const results = await captain.dispatchParallel(['coder', 'documenter'], {
+  spec: 'auth-feature',
+});
+```
+
+<Aside type="caution">
+Only dispatch crew members in parallel if they don't depend on each other's output. For example, `tester` depends on `coder` output, so they should run sequentially.
+</Aside>
+
+## Context Assembly
+
+The Captain assembles context for crew members:
+
+```typescript
+// Context is automatically gathered based on crew member type
+const context = await captain.assembleContext('coder', {
+  spec: 'auth-feature',
+});
+
+console.log(context.artifacts);
+// [
+//   '.ldf/specs/auth-feature.yaml',
+//   '.ldf/sail/scope/user-stories.yaml',
+//   '.ldf/sail/architect/components.yaml'
+// ]
+```
+
+### Context Sources
+
+| Crew Member | Context Includes |
+|-------------|------------------|
+| `scope` | Spec file |
+| `architect` | Spec + scope artifacts |
+| `coder` | Spec + scope + architect artifacts |
+| `tester` | Spec + coder artifacts |
+| `reviewer` | All generated code |
+
+### Custom Context
+
+Add custom context to dispatch:
+
+```typescript
+await captain.dispatch('coder', {
+  spec: 'auth-feature',
+  additionalContext: [
+    'src/shared/types.ts',
+    'docs/api-conventions.md',
+  ],
+});
+```
+
+## Provider Selection
+
+The Captain manages provider selection:
+
+```typescript
+// Use default provider
+const captain = await Captain.create();
+
+// Use specific provider
+const captain = await Captain.create({
+  provider: 'openai',
+  model: 'gpt-4o',
+});
+
+// Override per-dispatch
+await captain.dispatch('coder', {
+  spec: 'auth-feature',
+  provider: 'claude',
+  model: 'claude-opus-4-5-20251101',
+});
+```
+
+### Provider Discovery
+
+```typescript
+// Get available providers
+const providers = await captain.discoverProviders();
+
+for (const provider of providers) {
+  console.log(`${provider.name}: ${provider.installed ? '✓' : '○'}`);
+}
+// claude: ✓
+// openai: ✓
+// gemini: ○
+```
+
+## Signal Emission
+
+The Captain emits signals for all operations:
+
+```typescript
+// Signals are emitted automatically
+await captain.dispatch('coder', { spec: 'auth-feature' });
+
+// Emits:
+// - crew.dispatch_started
+// - crew.dispatch_completed (or crew.dispatch_failed)
+```
+
+### Custom Signal Handling
+
+```typescript
+const captain = await Captain.create({
+  onSignal: (signal) => {
+    console.log(`Signal: ${signal.signal_type}`);
+    // Custom handling (logging, metrics, etc.)
+  },
+});
+```
+
+## Configuration
+
+### Global Configuration
+
+Set defaults in `.ldf/settings.yaml`:
+
+```yaml
+crew:
+  default_provider: claude
+  default_model: claude-sonnet-4-20250514
+  default_reasoning: medium
+  default_max_tokens: 16000
+
+  # Captain-specific settings
+  captain:
+    # Retry failed dispatches
+    auto_retry: true
+    max_retries: 3
+    retry_delay_ms: 5000
+
+    # Timeout settings
+    dispatch_timeout_ms: 300000
+
+    # Context limits
+    max_context_files: 20
+    max_context_size_kb: 500
+```
+
+### Per-Dispatch Configuration
+
+Override settings per dispatch:
+
+```typescript
+await captain.dispatch('coder', {
+  spec: 'auth-feature',
+  reasoning: 'high',
+  maxTokens: 32000,
+  temperature: 0.5,
+  timeout: 600000,
+});
+```
+
+## Error Handling
+
+The Captain provides detailed error information:
+
+```typescript
+try {
+  await captain.dispatch('coder', { spec: 'auth-feature' });
+} catch (error) {
+  if (error instanceof DispatchError) {
+    console.log(error.type); // 'rate_limit' | 'auth_failed' | etc.
+    console.log(error.retryable); // true | false
+    console.log(error.retryAfter); // seconds to wait (if rate limited)
+  }
+}
+```
+
+### Automatic Retry
+
+Enable automatic retry for transient errors:
+
+```typescript
+const captain = await Captain.create({
+  autoRetry: true,
+  maxRetries: 3,
+  retryDelay: 5000,
+});
+
+// Will automatically retry rate limits, timeouts
+await captain.dispatch('coder', { spec: 'auth-feature' });
+```
+
+## Workflows
+
+### Standard SAIL Workflow
+
+```typescript
+const captain = await Captain.create();
+
+// Run complete SAIL workflow
+await captain.dispatch('scope', { spec: 'auth-feature' });
+await captain.dispatch('architect', { spec: 'auth-feature' });
+await captain.dispatch('coder', { spec: 'auth-feature' });
+await captain.dispatch('tester', { spec: 'auth-feature' });
+```
+
+### Coder + Tester Workflow
+
+```typescript
+// Common pattern: generate code then tests
+await captain.dispatchMany(['coder', 'tester'], {
+  spec: 'auth-feature',
+});
+```
+
+### Review Workflow
+
+```typescript
+// Generate code, then review it
+await captain.dispatch('coder', { spec: 'auth-feature' });
+
+const review = await captain.dispatch('reviewer', {
+  spec: 'auth-feature',
+  // Reviewer uses different provider for independent review
+  provider: 'openai',
+});
+
+if (review.result.issues.length > 0) {
+  console.log('Review found issues:', review.result.issues);
+}
+```
+
+## CLI Usage
+
+The `ldf crew dispatch` command uses the Captain internally:
+
+```bash
+# These CLI commands use Captain
+ldf crew dispatch coder
+ldf crew dispatch coder tester
+ldf crew dispatch coder --reasoning high --provider openai
+```
+
+## Next Steps
+
+- [Crew Members](/crew/members/) — Individual crew member reference
+- [Providers](/crew/providers/) — LLM provider configuration
+- [SAIL Implement](/sail/implement/) — Using crew in SAIL workflow

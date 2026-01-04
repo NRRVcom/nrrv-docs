@@ -1,0 +1,410 @@
+---
+title: Crew Members
+description: Reference for all available crew members and their capabilities.
+---
+
+import { Aside, Card, CardGrid, Tabs, TabItem } from '@astrojs/starlight/components';
+
+# Crew Members
+
+Crew members are specialized AI agents that perform specific development tasks. Each has a defined role, context requirements, and output format.
+
+## Available Crew Members
+
+<CardGrid>
+  <Card title="scope" icon="document">
+    Requirements extraction and TDD anchor generation.
+  </Card>
+  <Card title="architect" icon="setting">
+    Technical design and component specification.
+  </Card>
+  <Card title="coder" icon="laptop">
+    Implementation code generation.
+  </Card>
+  <Card title="tester" icon="approve-check">
+    Unit and integration test creation.
+  </Card>
+  <Card title="reviewer" icon="magnifier">
+    Code review and issue detection.
+  </Card>
+  <Card title="documenter" icon="open-book">
+    API documentation generation.
+  </Card>
+</CardGrid>
+
+---
+
+## scope
+
+Extracts formal requirements from spec files, producing user stories and TDD anchors.
+
+### When to Use
+
+- Starting a new feature
+- Analyzing requirements
+- Setting up test coverage targets
+
+### Input
+
+- Spec file (`.ldf/specs/*.yaml`)
+
+### Output
+
+- User stories (`.ldf/sail/scope/user-stories.yaml`)
+- TDD anchors (`.ldf/sail/scope/tdd-anchors.yaml`)
+
+### Command
+
+```bash
+ldf crew dispatch scope
+ldf crew dispatch scope --spec my-feature
+```
+
+### Example Output
+
+```yaml
+# user-stories.yaml
+stories:
+  - id: US-001
+    title: User Registration
+    as_a: new user
+    i_want: to create an account
+    so_that: I can access the application
+    acceptance_criteria:
+      - Email validation
+      - Password strength check
+    priority: high
+```
+
+---
+
+## architect
+
+Designs technical architecture based on requirements and existing codebase patterns.
+
+### When to Use
+
+- After scope phase
+- Designing new systems
+- Planning component structure
+
+### Input
+
+- Spec file
+- Scope outputs (user stories, anchors)
+- Existing codebase (for pattern matching)
+
+### Output
+
+- Design document (`.ldf/sail/architect/design.md`)
+- Component specs (`.ldf/sail/architect/components.yaml`)
+- Decision records (`.ldf/sail/architect/decisions.yaml`)
+
+### Command
+
+```bash
+ldf crew dispatch architect
+ldf crew dispatch architect --reasoning high
+```
+
+### Configuration
+
+```yaml
+# .ldf/settings.yaml
+crew:
+  members:
+    architect:
+      reasoning: high
+      include_diagrams: true
+      analyze_existing: true
+```
+
+---
+
+## coder
+
+Generates implementation code based on architect specifications.
+
+### When to Use
+
+- After architect phase
+- Implementing new features
+- Generating boilerplate
+
+### Input
+
+- Spec file
+- Architect outputs (components, design)
+- Scope outputs (for context)
+- Existing code patterns
+
+### Output
+
+- Source files in target locations
+- Type definitions
+- Inline documentation
+
+### Command
+
+```bash
+ldf crew dispatch coder
+ldf crew dispatch coder --reasoning high --max-tokens 32000
+```
+
+### Configuration
+
+```yaml
+crew:
+  members:
+    coder:
+      reasoning: high
+      max_tokens: 32000
+      temperature: 0.7
+      # Generate multiple files in one dispatch
+      multi_file: true
+      # Include inline documentation
+      include_docs: true
+```
+
+### Best Practices
+
+<Aside type="tip">
+Use `--reasoning high` for complex logic like algorithms or state management. Use `medium` for standard CRUD operations.
+</Aside>
+
+---
+
+## tester
+
+Generates tests based on TDD anchors and implementation code.
+
+### When to Use
+
+- After coder generates implementation
+- Improving test coverage
+- Writing tests for existing code
+
+### Input
+
+- TDD anchors
+- Implementation code
+- Existing test patterns
+
+### Output
+
+- Unit tests (`*.test.ts`, `*.spec.ts`)
+- Integration tests
+- Test fixtures and mocks
+
+### Command
+
+```bash
+ldf crew dispatch tester
+ldf crew dispatch tester --types unit,integration
+```
+
+### Configuration
+
+```yaml
+crew:
+  members:
+    tester:
+      reasoning: medium
+      # Test types to generate
+      types:
+        - unit
+        - integration
+      # Use existing test patterns
+      match_patterns: true
+      # Generate test fixtures
+      include_fixtures: true
+```
+
+### TDD Anchor Coverage
+
+Tester uses TDD anchors to ensure coverage:
+
+```bash
+# Check which anchors have tests
+ldf tdd status
+
+# Tester will prioritize uncovered anchors
+ldf crew dispatch tester
+```
+
+---
+
+## reviewer
+
+Reviews generated code for issues, improvements, and best practices.
+
+### When to Use
+
+- After implementation
+- Code quality checks
+- Independent verification
+
+### Input
+
+- Generated code
+- Spec requirements
+- Project conventions
+
+### Output
+
+- Review report with issues
+- Improvement suggestions
+- Security findings
+
+### Command
+
+```bash
+ldf crew dispatch reviewer
+ldf crew dispatch reviewer --provider openai  # Use different provider for independence
+```
+
+### Configuration
+
+```yaml
+crew:
+  members:
+    reviewer:
+      # Use different provider for independent review
+      provider: openai
+      model: gpt-4o
+      # Review categories to check
+      categories:
+        - security
+        - performance
+        - maintainability
+        - style
+```
+
+### Review Output
+
+```yaml
+# Review result
+issues:
+  - severity: warning
+    category: security
+    file: src/auth/service.ts
+    line: 45
+    message: "Password comparison should use constant-time comparison"
+    suggestion: "Use crypto.timingSafeEqual instead of ==="
+
+  - severity: info
+    category: maintainability
+    file: src/auth/controller.ts
+    line: 23
+    message: "Consider extracting validation to middleware"
+
+summary:
+  critical: 0
+  warning: 1
+  info: 1
+```
+
+---
+
+## documenter
+
+Generates documentation from code and specs.
+
+### When to Use
+
+- After implementation
+- API documentation
+- README generation
+
+### Input
+
+- Source code
+- Spec file
+- Existing documentation
+
+### Output
+
+- API documentation
+- README updates
+- Code examples
+
+### Command
+
+```bash
+ldf crew dispatch documenter
+ldf crew dispatch documenter --format markdown
+```
+
+### Configuration
+
+```yaml
+crew:
+  members:
+    documenter:
+      # Output format
+      format: markdown  # markdown | jsdoc | openapi
+      # Include code examples
+      include_examples: true
+      # Generate for specific files
+      targets:
+        - src/api/**/*.ts
+```
+
+---
+
+## Custom Crew Members
+
+You can define custom crew members for project-specific tasks.
+
+### Definition
+
+Create a crew member definition in `.ldf/crew/`:
+
+```yaml
+# .ldf/crew/migration-writer.yaml
+name: migration-writer
+description: Generates database migrations from schema changes
+role: |
+  You are a database migration expert. Generate migrations that:
+  - Are reversible (up and down)
+  - Handle data transformation safely
+  - Follow the project's migration patterns
+
+context:
+  - .ldf/specs/*.yaml
+  - src/db/schema.ts
+  - src/db/migrations/*.ts
+
+output:
+  path: src/db/migrations/
+  pattern: "{timestamp}-{name}.ts"
+
+config:
+  reasoning: high
+  max_tokens: 8000
+```
+
+### Usage
+
+```bash
+ldf crew dispatch migration-writer
+```
+
+---
+
+## Crew Member Comparison
+
+| Member | Primary Output | Reasoning | Typical Tokens |
+|--------|---------------|-----------|----------------|
+| scope | User stories, TDD anchors | low-medium | 2,000-4,000 |
+| architect | Design docs, components | medium-high | 3,000-6,000 |
+| coder | Source code | medium-high | 8,000-32,000 |
+| tester | Test files | medium | 4,000-16,000 |
+| reviewer | Review report | medium | 2,000-4,000 |
+| documenter | Documentation | low-medium | 2,000-8,000 |
+
+## Next Steps
+
+- [Captain](/crew/captain/) — Orchestrating crew dispatch
+- [Providers](/crew/providers/) — LLM provider configuration
+- [SAIL Overview](/sail/overview/) — Using crew in SAIL workflow

@@ -1,0 +1,703 @@
+---
+title: Signal Schemas
+description: JSON Schema reference for all NRRV signals.
+---
+
+import { Aside, Tabs, TabItem } from '@astrojs/starlight/components';
+
+# Signal Schemas
+
+This page documents the JSON Schema for all NRRV signals. These schemas are generated from the Zod definitions in `@nrrv/core`.
+
+## Schema Location
+
+JSON Schema files are available at:
+
+```bash
+# npm package
+node_modules/@nrrv/core/schemas/
+
+# Direct download
+https://nrrv.com/schemas/{category}/{signal}.json
+```
+
+## Base Signal Schema
+
+All signals share this base structure:
+
+```json
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "required": ["signal_type", "timestamp", "actor", "source", "payload", "metadata"],
+  "properties": {
+    "signal_type": {
+      "type": "string",
+      "pattern": "^[a-z]+\\.[a-z_]+$"
+    },
+    "version": {
+      "type": "string",
+      "default": "1.0"
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "actor": {
+      "type": "string"
+    },
+    "source": {
+      "type": "string",
+      "enum": ["nrrv", "ldf", "ci", "api", "manual"]
+    },
+    "payload": {
+      "type": "object"
+    },
+    "metadata": {
+      "type": "object",
+      "required": ["signal_id"],
+      "properties": {
+        "signal_id": {
+          "type": "string",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}-\\d{2}-\\d{2}Z_[0-9a-f-]+$"
+        },
+        "cli_version": { "type": "string" },
+        "nrrv_spec": { "type": "string", "default": "1.0" }
+      }
+    }
+  }
+}
+```
+
+## Lifecycle Signals
+
+### lifecycle.loop_start
+
+Emitted when a new loop is initialized.
+
+<Tabs>
+  <TabItem label="Schema">
+```json
+{
+  "type": "object",
+  "properties": {
+    "signal_type": { "const": "lifecycle.loop_start" },
+    "payload": {
+      "type": "object",
+      "required": ["loop_id"],
+      "properties": {
+        "loop_id": { "type": "integer", "minimum": 1 },
+        "goals": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "initial_phase": {
+          "type": "string",
+          "enum": ["navigate", "reason", "realize", "validate"],
+          "default": "navigate"
+        }
+      }
+    }
+  }
+}
+```
+  </TabItem>
+  <TabItem label="Example">
+```yaml
+signal_type: lifecycle.loop_start
+timestamp: "2024-01-15T09:00:00Z"
+actor: "dev@example.com"
+source: nrrv
+payload:
+  loop_id: 5
+  goals:
+    - "Add user authentication"
+    - "Implement password reset"
+  initial_phase: navigate
+metadata:
+  signal_id: "2024-01-15T09-00-00Z_01942d5e-7f3d-7abc-8def-123456789abc"
+```
+  </TabItem>
+</Tabs>
+
+### lifecycle.phase_transition
+
+Emitted when the phase changes.
+
+<Tabs>
+  <TabItem label="Schema">
+```json
+{
+  "type": "object",
+  "properties": {
+    "signal_type": { "const": "lifecycle.phase_transition" },
+    "payload": {
+      "type": "object",
+      "required": ["from_phase", "to_phase"],
+      "properties": {
+        "from_phase": {
+          "type": "string",
+          "enum": ["navigate", "reason", "realize", "validate"]
+        },
+        "to_phase": {
+          "type": "string",
+          "enum": ["navigate", "reason", "realize", "validate"]
+        },
+        "acknowledged_warnings": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      }
+    }
+  }
+}
+```
+  </TabItem>
+  <TabItem label="Example">
+```yaml
+signal_type: lifecycle.phase_transition
+timestamp: "2024-01-15T10:30:00Z"
+actor: "dev@example.com"
+source: nrrv
+payload:
+  from_phase: navigate
+  to_phase: reason
+  acknowledged_warnings:
+    - "missing_spec"
+```
+  </TabItem>
+</Tabs>
+
+### lifecycle.loop_complete
+
+Emitted when a loop is completed.
+
+<Tabs>
+  <TabItem label="Schema">
+```json
+{
+  "type": "object",
+  "properties": {
+    "signal_type": { "const": "lifecycle.loop_complete" },
+    "payload": {
+      "type": "object",
+      "required": ["loop_id", "outcome", "final_phase", "archived_to", "signals_archived", "summary"],
+      "properties": {
+        "loop_id": { "type": "integer", "minimum": 1 },
+        "outcome": {
+          "type": "string",
+          "enum": ["continue", "adjust", "pivot"]
+        },
+        "outcome_reason": { "type": "string" },
+        "final_phase": {
+          "type": "string",
+          "enum": ["navigate", "reason", "realize", "validate"]
+        },
+        "archived_to": { "type": "string" },
+        "signals_archived": { "type": "integer", "minimum": 0 },
+        "summary": {
+          "type": "object",
+          "required": ["duration_days", "goals_achieved", "goals_partial", "goals_missed", "total_signals", "waivers"],
+          "properties": {
+            "duration_days": { "type": "integer", "minimum": 0 },
+            "goals_achieved": { "type": "integer", "minimum": 0 },
+            "goals_partial": { "type": "integer", "minimum": 0 },
+            "goals_missed": { "type": "integer", "minimum": 0 },
+            "total_signals": { "type": "integer", "minimum": 0 },
+            "waivers": { "type": "integer", "minimum": 0 }
+          }
+        }
+      }
+    }
+  }
+}
+```
+  </TabItem>
+  <TabItem label="Example">
+```yaml
+signal_type: lifecycle.loop_complete
+payload:
+  loop_id: 5
+  outcome: continue
+  outcome_reason: "All acceptance criteria met"
+  final_phase: validate
+  archived_to: ".nrrv/history/loop-005"
+  signals_archived: 24
+  summary:
+    duration_days: 2
+    goals_achieved: 2
+    goals_partial: 0
+    goals_missed: 0
+    total_signals: 24
+    waivers: 1
+```
+  </TabItem>
+</Tabs>
+
+### lifecycle.waiver
+
+Emitted when a warning is acknowledged.
+
+<Tabs>
+  <TabItem label="Schema">
+```json
+{
+  "type": "object",
+  "properties": {
+    "signal_type": { "const": "lifecycle.waiver" },
+    "payload": {
+      "type": "object",
+      "required": ["warning_id", "reason", "phase"],
+      "properties": {
+        "warning_id": { "type": "string" },
+        "reason": { "type": "string" },
+        "phase": {
+          "type": "string",
+          "enum": ["navigate", "reason", "realize", "validate"]
+        }
+      }
+    }
+  }
+}
+```
+  </TabItem>
+  <TabItem label="Example">
+```yaml
+signal_type: lifecycle.waiver
+payload:
+  warning_id: "missing_spec"
+  reason: "Spec will be created during Reason phase"
+  phase: navigate
+```
+  </TabItem>
+</Tabs>
+
+---
+
+## Crew Signals
+
+### crew.dispatch_started
+
+Emitted when a crew dispatch begins.
+
+<Tabs>
+  <TabItem label="Schema">
+```json
+{
+  "type": "object",
+  "properties": {
+    "signal_type": { "const": "crew.dispatch_started" },
+    "payload": {
+      "type": "object",
+      "required": ["dispatch_id", "crew_member", "spec", "phase", "provider", "config"],
+      "properties": {
+        "dispatch_id": { "type": "string" },
+        "crew_member": { "type": "string" },
+        "spec": { "type": "string" },
+        "phase": {
+          "type": "string",
+          "enum": ["scope", "architect", "implement", "learn"]
+        },
+        "provider": {
+          "type": "object",
+          "required": ["name", "model"],
+          "properties": {
+            "name": { "type": "string" },
+            "model": { "type": "string" }
+          }
+        },
+        "config": {
+          "type": "object",
+          "required": ["max_tokens"],
+          "properties": {
+            "reasoning": {
+              "type": "string",
+              "enum": ["none", "low", "medium", "high", "xhigh"]
+            },
+            "max_tokens": { "type": "integer", "minimum": 1 },
+            "temperature": { "type": "number", "minimum": 0, "maximum": 2 }
+          }
+        }
+      }
+    }
+  }
+}
+```
+  </TabItem>
+  <TabItem label="Example">
+```yaml
+signal_type: crew.dispatch_started
+payload:
+  dispatch_id: "d-abc123"
+  crew_member: coder
+  spec: "auth-feature"
+  phase: implement
+  provider:
+    name: claude
+    model: claude-sonnet-4-20250514
+  config:
+    reasoning: medium
+    max_tokens: 16000
+    temperature: 0.7
+```
+  </TabItem>
+</Tabs>
+
+### crew.dispatch_completed
+
+Emitted when a crew dispatch succeeds.
+
+<Tabs>
+  <TabItem label="Schema">
+```json
+{
+  "type": "object",
+  "properties": {
+    "signal_type": { "const": "crew.dispatch_completed" },
+    "payload": {
+      "type": "object",
+      "required": ["dispatch_id", "crew_member", "spec", "phase", "provider", "result", "tokens"],
+      "properties": {
+        "dispatch_id": { "type": "string" },
+        "crew_member": { "type": "string" },
+        "spec": { "type": "string" },
+        "phase": { "type": "string" },
+        "provider": { "type": "object" },
+        "result": {
+          "type": "object",
+          "required": ["status", "duration_ms"],
+          "properties": {
+            "status": {
+              "type": "string",
+              "enum": ["success", "partial", "failed"]
+            },
+            "duration_ms": { "type": "integer", "minimum": 0 }
+          }
+        },
+        "tokens": {
+          "type": "object",
+          "required": ["input", "output", "total"],
+          "properties": {
+            "input": { "type": "integer", "minimum": 0 },
+            "output": { "type": "integer", "minimum": 0 },
+            "total": { "type": "integer", "minimum": 0 },
+            "cache_read": { "type": "integer", "minimum": 0 },
+            "cache_write": { "type": "integer", "minimum": 0 }
+          }
+        },
+        "artifacts_produced": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["path", "type"],
+            "properties": {
+              "path": { "type": "string" },
+              "type": { "type": "string" },
+              "lines": { "type": "integer", "minimum": 0 }
+            }
+          }
+        }
+      }
+    }
+  }
+}
+```
+  </TabItem>
+  <TabItem label="Example">
+```yaml
+signal_type: crew.dispatch_completed
+payload:
+  dispatch_id: "d-abc123"
+  crew_member: coder
+  spec: "auth-feature"
+  phase: implement
+  provider:
+    name: claude
+    model: claude-sonnet-4-20250514
+  result:
+    status: success
+    duration_ms: 45230
+  tokens:
+    input: 8500
+    output: 3200
+    total: 11700
+    cache_read: 2000
+  artifacts_produced:
+    - path: "src/auth/service.ts"
+      type: typescript
+      lines: 145
+```
+  </TabItem>
+</Tabs>
+
+### crew.dispatch_failed
+
+Emitted when a crew dispatch fails.
+
+<Tabs>
+  <TabItem label="Schema">
+```json
+{
+  "type": "object",
+  "properties": {
+    "signal_type": { "const": "crew.dispatch_failed" },
+    "payload": {
+      "type": "object",
+      "required": ["dispatch_id", "crew_member", "spec", "provider", "error"],
+      "properties": {
+        "dispatch_id": { "type": "string" },
+        "crew_member": { "type": "string" },
+        "spec": { "type": "string" },
+        "provider": { "type": "object" },
+        "error": {
+          "type": "object",
+          "required": ["type", "message", "retryable"],
+          "properties": {
+            "type": {
+              "type": "string",
+              "enum": ["rate_limit", "auth_failed", "timeout", "provider_error", "internal"]
+            },
+            "message": { "type": "string" },
+            "retryable": { "type": "boolean" },
+            "retry_after_seconds": { "type": "integer", "minimum": 0 }
+          }
+        }
+      }
+    }
+  }
+}
+```
+  </TabItem>
+  <TabItem label="Example">
+```yaml
+signal_type: crew.dispatch_failed
+payload:
+  dispatch_id: "d-abc123"
+  crew_member: coder
+  spec: "auth-feature"
+  provider:
+    name: claude
+    model: claude-sonnet-4-20250514
+  error:
+    type: rate_limit
+    message: "Rate limit exceeded"
+    retryable: true
+    retry_after_seconds: 60
+```
+  </TabItem>
+</Tabs>
+
+---
+
+## Guardrail Signals
+
+### guardrail.violation
+
+Emitted when guardrails detect violations.
+
+<Tabs>
+  <TabItem label="Schema">
+```json
+{
+  "type": "object",
+  "properties": {
+    "signal_type": { "const": "guardrail.violation" },
+    "payload": {
+      "type": "object",
+      "required": ["dispatch_id", "crew_member", "spec", "blocked", "violations", "summary"],
+      "properties": {
+        "dispatch_id": { "type": "string" },
+        "crew_member": { "type": "string" },
+        "spec": { "type": "string" },
+        "blocked": { "type": "boolean" },
+        "violations": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["guardrail_id", "guardrail_name", "severity", "message"],
+            "properties": {
+              "guardrail_id": { "type": "string" },
+              "guardrail_name": { "type": "string" },
+              "severity": {
+                "type": "string",
+                "enum": ["error", "warning", "info"]
+              },
+              "file": { "type": "string" },
+              "line": { "type": ["integer", "null"] },
+              "column": { "type": ["integer", "null"] },
+              "message": { "type": "string" },
+              "suggestion": { "type": "string" }
+            }
+          }
+        },
+        "summary": {
+          "type": "object",
+          "required": ["total", "errors", "warnings", "infos"],
+          "properties": {
+            "total": { "type": "integer", "minimum": 0 },
+            "errors": { "type": "integer", "minimum": 0 },
+            "warnings": { "type": "integer", "minimum": 0 },
+            "infos": { "type": "integer", "minimum": 0 }
+          }
+        }
+      }
+    }
+  }
+}
+```
+  </TabItem>
+  <TabItem label="Example">
+```yaml
+signal_type: guardrail.violation
+payload:
+  dispatch_id: "d-abc123"
+  crew_member: coder
+  spec: "auth-feature"
+  blocked: true
+  violations:
+    - guardrail_id: "security.no-hardcoded-secrets"
+      guardrail_name: "No Hardcoded Secrets"
+      severity: error
+      file: "src/auth/config.ts"
+      line: 15
+      message: "Potential hardcoded API key detected"
+      suggestion: "Use environment variables instead"
+  summary:
+    total: 1
+    errors: 1
+    warnings: 0
+    infos: 0
+```
+  </TabItem>
+</Tabs>
+
+---
+
+## TDD Signals
+
+### tdd.coverage_report
+
+Emitted when TDD coverage is assessed.
+
+<Tabs>
+  <TabItem label="Schema">
+```json
+{
+  "type": "object",
+  "properties": {
+    "signal_type": { "const": "tdd.coverage_report" },
+    "payload": {
+      "type": "object",
+      "required": ["spec", "phase", "summary", "by_status", "by_type"],
+      "properties": {
+        "spec": { "type": "string" },
+        "phase": { "type": "string" },
+        "summary": {
+          "type": "object",
+          "required": ["total_anchors", "coverage_percent"],
+          "properties": {
+            "total_anchors": { "type": "integer", "minimum": 0 },
+            "coverage_percent": { "type": "number", "minimum": 0, "maximum": 100 }
+          }
+        },
+        "by_status": {
+          "type": "object",
+          "properties": {
+            "pending": { "type": "integer", "minimum": 0 },
+            "passing": { "type": "integer", "minimum": 0 },
+            "failing": { "type": "integer", "minimum": 0 }
+          }
+        },
+        "by_type": {
+          "type": "object",
+          "properties": {
+            "unit": { "type": "integer", "minimum": 0 },
+            "integration": { "type": "integer", "minimum": 0 },
+            "acceptance": { "type": "integer", "minimum": 0 }
+          }
+        },
+        "gaps": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["anchor_id", "anchor", "priority"],
+            "properties": {
+              "anchor_id": { "type": "string" },
+              "anchor": { "type": "string" },
+              "story_id": { "type": "string" },
+              "priority": {
+                "type": "string",
+                "enum": ["critical", "high", "medium", "low"]
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
+```
+  </TabItem>
+  <TabItem label="Example">
+```yaml
+signal_type: tdd.coverage_report
+payload:
+  spec: "auth-feature"
+  phase: implement
+  summary:
+    total_anchors: 12
+    coverage_percent: 83.3
+  by_status:
+    pending: 2
+    passing: 10
+    failing: 0
+  by_type:
+    unit: 8
+    integration: 3
+    acceptance: 1
+  gaps:
+    - anchor_id: "TDD-011"
+      anchor: "Password reset sends email"
+      priority: high
+```
+  </TabItem>
+</Tabs>
+
+---
+
+## Using Schemas
+
+### Validation with Zod
+
+```typescript
+import { Signal } from '@nrrv/core';
+
+// Validate a signal
+const result = Signal.safeParse(mySignal);
+if (result.success) {
+  console.log('Valid signal:', result.data);
+} else {
+  console.error('Invalid signal:', result.error);
+}
+```
+
+### Validation with JSON Schema
+
+```javascript
+import Ajv from 'ajv';
+import schema from '@nrrv/core/schemas/lifecycle/loop-start.json';
+
+const ajv = new Ajv();
+const validate = ajv.compile(schema);
+
+if (validate(mySignal)) {
+  console.log('Valid signal');
+} else {
+  console.error('Invalid:', validate.errors);
+}
+```
+
+## See Also
+
+- [Signals](/framework/signals/) — Signal system documentation
+- [Source Schemas](https://github.com/NRRVcom/ldf/tree/main/packages/nrrv-core/schemas) — GitHub source

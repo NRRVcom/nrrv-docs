@@ -1,0 +1,308 @@
+---
+title: Providers
+description: Configuring and using LLM providers with the crew system.
+---
+
+import { Aside, Steps, Tabs, TabItem } from '@astrojs/starlight/components';
+
+# Providers
+
+Providers connect the crew system to LLM services. Each provider is a separate package that can be installed independently.
+
+## Available Providers
+
+| Provider | Package | Models |
+|----------|---------|--------|
+| Claude (Anthropic) | `@ldf/provider-claude` | claude-sonnet-4-20250514, claude-opus-4-5-20251101 |
+| OpenAI | `@ldf/provider-openai` | gpt-4o, gpt-4-turbo, gpt-4o-mini |
+| Gemini (Google) | `@ldf/provider-gemini` | gemini-2.0-flash, gemini-1.5-pro |
+
+## Installation
+
+Install providers you need:
+
+<Tabs>
+  <TabItem label="Claude">
+```bash
+# Install Claude provider
+pnpm add -g @ldf/provider-claude
+
+# Set API key
+export ANTHROPIC_API_KEY="sk-ant-..."
+```
+  </TabItem>
+  <TabItem label="OpenAI">
+```bash
+# Install OpenAI provider
+pnpm add -g @ldf/provider-openai
+
+# Set API key
+export OPENAI_API_KEY="sk-..."
+```
+  </TabItem>
+  <TabItem label="Gemini">
+```bash
+# Install Gemini provider
+pnpm add -g @ldf/provider-gemini
+
+# Set API key
+export GOOGLE_API_KEY="AIza..."
+```
+  </TabItem>
+  <TabItem label="All">
+```bash
+# Install all providers
+pnpm add -g @ldf/providers
+```
+  </TabItem>
+</Tabs>
+
+## Checking Provider Status
+
+```bash
+# List all providers
+ldf providers
+```
+
+Output:
+```
+LLM Providers — 2 installed, 1 available
+
+Installed
+  ● claude       Claude (Anthropic)
+  ● openai       OpenAI
+
+Available (not installed)
+  ○ gemini       @ldf/provider-gemini
+```
+
+## Validating Credentials
+
+```bash
+# Check specific provider
+ldf providers check claude
+```
+
+Output:
+```
+Checking claude provider...
+
+✓ Provider installed: @ldf/provider-claude
+✓ API key found: ANTHROPIC_API_KEY
+✓ Credentials valid (API test passed)
+
+Available models:
+  • claude-sonnet-4-20250514 (default)
+  • claude-opus-4-5-20251101
+  • claude-haiku-3-5-20241022
+```
+
+## Listing Models
+
+```bash
+# List models for a provider
+ldf providers models claude
+```
+
+Output:
+```
+Claude Models
+
+Model                      Context    Capabilities
+claude-opus-4-5-20251101   200K       reasoning, vision, code
+claude-sonnet-4-20250514   200K       reasoning, vision, code ← default
+claude-haiku-3-5-20241022  200K       vision, code
+```
+
+## Using Providers
+
+### Default Provider
+
+Set the default provider in settings:
+
+```yaml
+# .ldf/settings.yaml
+crew:
+  default_provider: claude
+  default_model: claude-sonnet-4-20250514
+```
+
+### Per-Dispatch Override
+
+```bash
+# Use specific provider
+ldf crew dispatch coder --provider openai
+
+# Use specific model
+ldf crew dispatch coder --provider claude --model claude-opus-4-5-20251101
+```
+
+### Per-Crew Configuration
+
+Configure different providers for different crew members:
+
+```yaml
+crew:
+  default_provider: claude
+
+  members:
+    coder:
+      provider: claude
+      model: claude-sonnet-4-20250514
+
+    reviewer:
+      # Use different provider for independent review
+      provider: openai
+      model: gpt-4o
+```
+
+## Provider Configuration
+
+### Claude
+
+```yaml
+providers:
+  claude:
+    api_key: ${ANTHROPIC_API_KEY}
+    default_model: claude-sonnet-4-20250514
+
+    # Extended thinking (for reasoning levels)
+    thinking:
+      enabled: true
+      budget_tokens: 10000
+
+    # Caching
+    cache:
+      enabled: true
+```
+
+<Aside type="tip">
+Claude's extended thinking is automatically used for `high` and `xhigh` reasoning levels, improving output quality for complex tasks.
+</Aside>
+
+### OpenAI
+
+```yaml
+providers:
+  openai:
+    api_key: ${OPENAI_API_KEY}
+    default_model: gpt-4o
+    organization: ${OPENAI_ORG_ID}  # Optional
+```
+
+### Gemini
+
+```yaml
+providers:
+  gemini:
+    api_key: ${GOOGLE_API_KEY}
+    default_model: gemini-2.0-flash
+```
+
+## Provider Features
+
+### Reasoning Support
+
+| Provider | Reasoning Modes |
+|----------|-----------------|
+| Claude | Extended thinking (`high`, `xhigh`) |
+| OpenAI | Standard reasoning |
+| Gemini | Standard reasoning |
+
+### Vision Support
+
+All providers support vision for analyzing images:
+
+```bash
+# Analyze UI mockups
+ldf crew dispatch architect --context mockup.png
+```
+
+### Token Tracking
+
+All providers report token usage:
+
+```yaml
+signal_type: crew.dispatch_completed
+payload:
+  tokens:
+    input: 8500
+    output: 3200
+    total: 11700
+    cache_read: 2000   # Claude only
+    cache_write: 500   # Claude only
+```
+
+## Provider Selection Strategy
+
+### When to Use Claude
+
+- Complex reasoning tasks (use `--reasoning high`)
+- Code generation with nuance
+- Tasks benefiting from extended thinking
+
+### When to Use OpenAI
+
+- Independent code review (different perspective)
+- Tasks requiring specific OpenAI features
+- Cost optimization for simpler tasks
+
+### When to Use Gemini
+
+- Large context requirements (1M+ tokens)
+- Multi-modal analysis
+- Cost-effective generation
+
+## Missing Provider Errors
+
+If a provider isn't installed:
+
+```bash
+$ ldf crew dispatch coder --provider gemini
+Error: Provider not installed
+
+The gemini provider is not installed. Install it with:
+  pnpm add -g @ldf/provider-gemini
+
+Or use an installed provider:
+  ldf crew dispatch coder --provider claude
+```
+
+## Environment Variables
+
+| Provider | Environment Variable |
+|----------|---------------------|
+| Claude | `ANTHROPIC_API_KEY` |
+| OpenAI | `OPENAI_API_KEY` |
+| Gemini | `GOOGLE_API_KEY` |
+
+Add these to your shell profile:
+
+```bash
+# ~/.zshrc or ~/.bashrc
+export ANTHROPIC_API_KEY="sk-ant-..."
+export OPENAI_API_KEY="sk-..."
+export GOOGLE_API_KEY="AIza..."
+```
+
+## Provider Signals
+
+Provider usage is tracked in signals:
+
+```yaml
+signal_type: crew.dispatch_completed
+payload:
+  provider:
+    name: claude
+    model: claude-sonnet-4-20250514
+  tokens:
+    input: 8500
+    output: 3200
+    total: 11700
+```
+
+## Next Steps
+
+- [Crew Overview](/crew/overview/) — Crew system introduction
+- [Captain](/crew/captain/) — Provider orchestration
+- [CLI Reference](/cli/ldf/) — Provider CLI commands

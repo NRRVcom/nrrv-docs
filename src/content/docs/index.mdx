@@ -1,0 +1,64 @@
+---
+title: NRRV Documentation
+description: Learn about the NRRV development lifecycle framework and LDF tooling.
+template: splash
+hero:
+  tagline: A structured approach to AI-assisted software development
+  image:
+    file: ../../assets/logo-light.svg
+  actions:
+    - text: Get Started
+      link: /getting-started/introduction/
+      icon: right-arrow
+      variant: primary
+    - text: View on GitHub
+      link: https://github.com/NRRVcom/ldf
+      icon: external
+---
+
+import { Card, CardGrid } from '@astrojs/starlight/components';
+
+## What is NRRV?
+
+NRRV (Navigate, Reason, Realize, Validate) is a development lifecycle framework designed for AI-assisted software development. It provides structure, traceability, and quality assurance through every phase of development.
+
+<CardGrid stagger>
+  <Card title="Navigate" icon="compass">
+    Define goals, gather requirements, and set direction for development work.
+  </Card>
+  <Card title="Reason" icon="puzzle">
+    Design solutions, make architectural decisions, and plan implementation.
+  </Card>
+  <Card title="Realize" icon="rocket">
+    Build the solution with AI assistance using the SAIL execution framework.
+  </Card>
+  <Card title="Validate" icon="approve-check">
+    Verify quality, run tests, and ensure the work meets requirements.
+  </Card>
+</CardGrid>
+
+## SAIL: AI-Assisted Implementation
+
+Within the Realize phase, **SAIL** (Scope, Architect, Implement, Learn) provides a structured approach for AI-assisted development:
+
+<CardGrid>
+  <Card title="Scope" icon="document">
+    Define requirements, user stories, and TDD anchors.
+  </Card>
+  <Card title="Architect" icon="setting">
+    Design system architecture and technical approach.
+  </Card>
+  <Card title="Implement" icon="laptop">
+    Write code with AI crew members (LLM-powered agents).
+  </Card>
+  <Card title="Learn" icon="star">
+    Document learnings and create knowledge artifacts.
+  </Card>
+</CardGrid>
+
+## Quick Links
+
+- [Installation Guide](/getting-started/installation/) - Set up NRRV and LDF tools
+- [Quick Start](/getting-started/quick-start/) - Create your first loop in 5 minutes
+- [CLI Reference](/cli/nrrv/) - Command-line interface documentation
+- [Signal Schemas](/api/signals/) - API reference for signals

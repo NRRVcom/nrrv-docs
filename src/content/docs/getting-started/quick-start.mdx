@@ -1,0 +1,121 @@
+---
+title: Quick Start
+description: Create your first NRRV project in 5 minutes.
+---
+
+import { Aside, Steps, Code } from '@astrojs/starlight/components';
+
+# Quick Start
+
+Get up and running with NRRV in 5 minutes. By the end, you'll have a project with a spec file ready for AI-assisted development.
+
+## Create a New Project
+
+<Steps>
+1. **Initialize your project directory:**
+   ```bash
+   mkdir my-project && cd my-project
+   git init
+   ```
+
+2. **Initialize NRRV:**
+   ```bash
+   nrrv loop init
+   ```
+
+   This creates the `.nrrv/` directory structure for tracking loops.
+
+3. **Initialize LDF:**
+   ```bash
+   ldf init
+   ```
+
+   This creates the `.ldf/` directory for specs and settings.
+
+4. **Create your first spec:**
+   ```bash
+   ldf spec create --set
+   ```
+
+   This opens your editor with a spec template. Fill in your requirements.
+</Steps>
+
+## Project Structure
+
+After initialization, your project will have:
+
+```
+my-project/
+├── .nrrv/
+│   ├── loop.yaml          # Current loop state
+│   └── signals/           # Signal log directory
+├── .ldf/
+│   ├── settings.yaml      # LDF configuration
+│   └── specs/             # Your spec files
+└── .gitignore
+```
+
+## Your First Spec
+
+A minimal spec looks like this:
+
+```yaml
+# .ldf/specs/feature-001.yaml
+title: "Add user authentication"
+description: |
+  Implement basic user authentication with email/password.
+
+requirements:
+  - Users can sign up with email and password
+  - Users can log in with credentials
+  - Passwords are hashed with bcrypt
+  - JWT tokens are issued on successful login
+
+acceptance_criteria:
+  - [ ] Sign up endpoint returns 201 on success
+  - [ ] Login endpoint returns JWT token
+  - [ ] Invalid credentials return 401
+```
+
+## Run SAIL Phases
+
+Once you have a spec, run through the SAIL phases:
+
+```bash
+# Scope: Extract requirements and TDD anchors
+ldf crew dispatch scope
+
+# Architect: Design the technical approach
+ldf crew dispatch architect
+
+# Implement: Generate code
+ldf crew dispatch coder
+
+# Learn: Document what was learned
+ldf sail learn complete
+```
+
+<Aside type="tip">
+Use `--dry-run` to see what would happen without making LLM calls:
+```bash
+ldf crew dispatch scope --dry-run
+```
+</Aside>
+
+## Check Status
+
+View your current state at any time:
+
+```bash
+# Loop status
+nrrv loop status
+
+# SAIL phase status
+ldf sail status
+```
+
+## Next Steps
+
+- [First Loop Tutorial](/getting-started/first-loop/) - Complete walkthrough of a development loop
+- [SAIL Overview](/sail/overview/) - Deep dive into AI-assisted development
+- [Crew System](/crew/overview/) - Learn about crew members and dispatch

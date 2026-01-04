@@ -1,0 +1,270 @@
+---
+title: SAIL Overview
+description: Understanding SAIL - the AI-assisted implementation framework within NRRV.
+---
+
+import { Aside, Card, CardGrid, Steps } from '@astrojs/starlight/components';
+
+# SAIL Overview
+
+**SAIL** (Scope, Architect, Implement, Learn) is the AI-assisted implementation framework used during the NRRV Realize phase.
+
+## What Is SAIL?
+
+SAIL structures how AI assists with software development:
+
+```
+┌──────────┐    ┌───────────┐    ┌───────────┐    ┌─────────┐
+│   Scope  │───▶│ Architect │───▶│ Implement │───▶│  Learn  │
+│          │    │           │    │           │    │         │
+│ Extract  │    │  Design   │    │  Generate │    │ Capture │
+│ reqs     │    │  approach │    │  code     │    │ insight │
+└──────────┘    └───────────┘    └───────────┘    └─────────┘
+```
+
+Each phase has a specific purpose:
+
+<CardGrid>
+  <Card title="Scope" icon="document">
+    Extract formal requirements, user stories, and TDD anchors from your spec.
+  </Card>
+  <Card title="Architect" icon="setting">
+    Design the technical architecture and implementation approach.
+  </Card>
+  <Card title="Implement" icon="laptop">
+    Generate code, tests, and documentation using crew members.
+  </Card>
+  <Card title="Learn" icon="star">
+    Capture insights and learnings for future reference.
+  </Card>
+</CardGrid>
+
+## SAIL in the NRRV Lifecycle
+
+SAIL operates within the **Realize** phase of NRRV:
+
+```
+NRRV Phases:   Navigate ──▶ Reason ──▶ Realize ──▶ Validate
+                                          │
+                                          ▼
+                              ┌─────────────────────┐
+                              │       SAIL          │
+                              │ Scope → Architect → │
+                              │ Implement → Learn   │
+                              └─────────────────────┘
+```
+
+<Aside type="tip">
+You should only enter the Realize phase after completing Navigate (requirements) and Reason (design decisions). SAIL works best when it has clear context from earlier phases.
+</Aside>
+
+## Quick Start
+
+<Steps>
+1. **Ensure you're in Realize phase:**
+   ```bash
+   nrrv loop status
+   # Should show: Loop #N — realize
+   ```
+
+2. **Run SAIL phases in order:**
+   ```bash
+   ldf sail scope complete
+   ldf sail architect complete
+   ldf crew dispatch coder
+   ldf sail learn complete
+   ```
+
+3. **Check progress:**
+   ```bash
+   ldf sail status
+   ```
+</Steps>
+
+## SAIL Commands
+
+### Phase Execution
+
+```bash
+# Complete a SAIL phase
+ldf sail scope complete
+ldf sail architect complete
+ldf sail learn complete
+
+# The implement phase uses crew dispatch
+ldf crew dispatch coder
+```
+
+### Status
+
+```bash
+# View SAIL status
+ldf sail status
+```
+
+Output:
+```
+SAIL Status — auth-feature spec
+  ✓ scope      complete  (2m 15s)
+  ✓ architect  complete  (3m 42s)
+  ⋯ implement  in progress
+  ○ learn      pending
+```
+
+### Dry Run
+
+Preview what would happen without making LLM calls:
+
+```bash
+ldf sail scope complete --dry-run
+```
+
+## Phase Dependencies
+
+SAIL phases have soft dependencies:
+
+| Phase | Depends On | Produces |
+|-------|------------|----------|
+| Scope | Spec file | User stories, TDD anchors |
+| Architect | Scope output | Technical design |
+| Implement | Architect output | Code, tests |
+| Learn | Implement results | Knowledge artifacts |
+
+You can run phases out of order, but you'll get warnings:
+
+```bash
+$ ldf sail architect complete
+⚠️  Warning: Scope phase not completed
+Architect phase may produce suboptimal results without scope artifacts.
+Continue anyway? [y/N]
+```
+
+## Crew Members
+
+During the Implement phase, **crew members** do the actual code generation:
+
+```bash
+# Dispatch the coder crew member
+ldf crew dispatch coder
+
+# Dispatch with specific options
+ldf crew dispatch coder --reasoning high --spec auth-feature
+```
+
+Crew members are specialized AI agents with defined roles:
+
+| Crew Member | Role |
+|-------------|------|
+| `scope` | Requirements extraction |
+| `architect` | Technical design |
+| `coder` | Code generation |
+| `tester` | Test generation |
+| `reviewer` | Code review |
+
+See [Crew System](/crew/overview/) for details.
+
+## Artifacts
+
+SAIL phases produce artifacts stored in `.ldf/sail/`:
+
+```
+.ldf/
+├── sail/
+│   ├── scope/
+│   │   ├── user-stories.yaml
+│   │   └── tdd-anchors.yaml
+│   ├── architect/
+│   │   ├── design.md
+│   │   └── components.yaml
+│   └── learn/
+│       └── learnings.yaml
+└── specs/
+    └── auth-feature.yaml
+```
+
+## Signals
+
+SAIL execution emits signals for tracking:
+
+```yaml
+signal_type: sail.phase_complete
+timestamp: "2024-01-15T11:30:00Z"
+source: ldf
+payload:
+  phase: scope
+  spec: "auth-feature"
+  build_status: success
+  crew_members_used:
+    - scope
+  learnings:
+    - "Identified 5 user stories from requirements"
+```
+
+Crew dispatch signals track individual operations:
+
+```yaml
+signal_type: crew.dispatch_completed
+payload:
+  dispatch_id: "d-abc123"
+  crew_member: coder
+  spec: "auth-feature"
+  phase: implement
+  result:
+    status: success
+    duration_ms: 45230
+  tokens:
+    input: 8500
+    output: 3200
+    total: 11700
+  artifacts_produced:
+    - path: "src/auth/service.ts"
+      type: typescript
+      lines: 145
+```
+
+## Configuration
+
+Configure SAIL behavior in `.ldf/settings.yaml`:
+
+```yaml
+sail:
+  default_spec: "current"  # Use active spec
+
+  scope:
+    auto_tdd: true         # Generate TDD anchors
+
+  architect:
+    include_diagrams: true  # Generate architecture diagrams
+
+  implement:
+    default_crew:
+      - coder
+      - tester
+
+  learn:
+    auto_capture: true     # Automatically capture learnings
+```
+
+## Best Practices
+
+<CardGrid>
+  <Card title="Complete Phases in Order">
+    While you can skip phases, each builds on the previous. Scope provides context for Architect, which guides Implement.
+  </Card>
+  <Card title="Review AI Output">
+    SAIL generates artifacts, but you should review them. The Learn phase is a good time to document what worked and what didn't.
+  </Card>
+  <Card title="Use Dry Run First">
+    For complex specs, use `--dry-run` to see what would happen before committing to LLM calls.
+  </Card>
+  <Card title="Capture Learnings">
+    The Learn phase improves future iterations. Don't skip it.
+  </Card>
+</CardGrid>
+
+## Next Steps
+
+- [Scope](/sail/scope/) — Requirements extraction
+- [Architect](/sail/architect/) — Technical design
+- [Implement](/sail/implement/) — Code generation
+- [Learn](/sail/learn/) — Knowledge capture

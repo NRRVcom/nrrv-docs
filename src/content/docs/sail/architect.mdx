@@ -1,0 +1,300 @@
+---
+title: Architect Phase
+description: Design the technical architecture and implementation approach.
+---
+
+import { Aside, Steps, Tabs, TabItem } from '@astrojs/starlight/components';
+
+# Architect Phase
+
+The **Architect** phase designs the technical approach for implementing your requirements, producing design documents and component specifications.
+
+## Purpose
+
+Architect transforms user stories into technical designs:
+
+```
+┌─────────────────────┐         ┌─────────────────────────┐
+│   Scope Outputs     │         │   Architect Outputs     │
+│                     │         │                         │
+│ - User Stories      │  ───▶   │ - Design Document (MD)  │
+│ - TDD Anchors       │         │ - Components (YAML)     │
+│ - Requirements      │         │ - API Contracts         │
+└─────────────────────┘         └─────────────────────────┘
+```
+
+## Running Architect
+
+```bash
+# Complete the architect phase
+ldf sail architect complete
+
+# With a specific spec
+ldf sail architect complete --spec auth-feature
+
+# Dry run to preview
+ldf sail architect complete --dry-run
+```
+
+## What Architect Produces
+
+### Design Document
+
+A comprehensive technical design:
+
+```markdown
+# .ldf/sail/architect/design.md
+
+# Authentication System Design
+
+## Overview
+This document describes the technical architecture for user
+authentication using JWT tokens.
+
+## Components
+
+### AuthService
+Handles user registration and login logic.
+- Location: `src/auth/service.ts`
+- Dependencies: UserRepository, PasswordHasher, TokenService
+
+### TokenService
+Manages JWT token generation and validation.
+- Location: `src/auth/token.ts`
+- Dependencies: jsonwebtoken
+
+### AuthController
+HTTP endpoints for auth operations.
+- Location: `src/auth/controller.ts`
+- Endpoints:
+  - POST /auth/register
+  - POST /auth/login
+  - POST /auth/refresh
+
+## Data Flow
+
+1. User submits credentials
+2. AuthController validates input
+3. AuthService verifies credentials
+4. TokenService generates JWT
+5. Response returned with token
+
+## Security Considerations
+
+- Passwords hashed with bcrypt (cost factor 12)
+- JWT tokens expire after 24 hours
+- Refresh tokens stored in HTTP-only cookies
+```
+
+### Component Specification
+
+Structured component definitions:
+
+```yaml
+# .ldf/sail/architect/components.yaml
+components:
+  - name: AuthService
+    type: service
+    path: src/auth/service.ts
+    responsibility: User registration and authentication logic
+    dependencies:
+      - UserRepository
+      - PasswordHasher
+      - TokenService
+    methods:
+      - name: register
+        params:
+          - name: email
+            type: string
+          - name: password
+            type: string
+        returns: Promise<User>
+
+      - name: login
+        params:
+          - name: email
+            type: string
+          - name: password
+            type: string
+        returns: Promise<AuthTokens>
+
+  - name: TokenService
+    type: service
+    path: src/auth/token.ts
+    responsibility: JWT token management
+    dependencies:
+      - jsonwebtoken
+    methods:
+      - name: generateAccessToken
+        params:
+          - name: userId
+            type: string
+        returns: string
+
+      - name: verifyToken
+        params:
+          - name: token
+            type: string
+        returns: TokenPayload | null
+
+  - name: AuthController
+    type: controller
+    path: src/auth/controller.ts
+    responsibility: HTTP API for authentication
+    endpoints:
+      - method: POST
+        path: /auth/register
+        request: RegisterRequest
+        response: UserResponse
+
+      - method: POST
+        path: /auth/login
+        request: LoginRequest
+        response: AuthTokensResponse
+```
+
+<Aside type="tip">
+The component specification provides a clear contract for the Implement phase. Crew members use this to generate consistent code.
+</Aside>
+
+## Design Decisions
+
+Architect captures key technical decisions:
+
+```yaml
+# .ldf/sail/architect/decisions.yaml
+decisions:
+  - id: DEC-001
+    title: Password Hashing Algorithm
+    decision: Use bcrypt with cost factor 12
+    rationale: |
+      Bcrypt is industry standard for password hashing.
+      Cost factor 12 provides good security/performance balance.
+    alternatives:
+      - name: Argon2
+        rejected_because: Less library support in Node.js ecosystem
+      - name: SHA-256
+        rejected_because: Not designed for password hashing
+
+  - id: DEC-002
+    title: Token Storage
+    decision: Access tokens in memory, refresh tokens in HTTP-only cookies
+    rationale: |
+      Prevents XSS attacks from stealing refresh tokens.
+      Access tokens have short expiry (15 min) limiting exposure.
+```
+
+## Example Workflow
+
+<Steps>
+1. **Ensure scope is complete:**
+   ```bash
+   ldf sail status
+   # ✓ scope complete
+   ```
+
+2. **Run architect phase:**
+   ```bash
+   ldf sail architect complete
+   ```
+
+3. **Review generated design:**
+   ```bash
+   cat .ldf/sail/architect/design.md
+   cat .ldf/sail/architect/components.yaml
+   ```
+
+4. **Optionally refine the design:**
+   Edit the generated files if needed before proceeding.
+
+5. **Proceed to implement:**
+   ```bash
+   ldf crew dispatch coder
+   ```
+</Steps>
+
+## Customizing Architect
+
+Configure architect behavior in `.ldf/settings.yaml`:
+
+```yaml
+sail:
+  architect:
+    # Include architecture diagrams (Mermaid)
+    include_diagrams: true
+
+    # Generate API contract files
+    generate_api_contracts: true
+
+    # Include decision records
+    include_decisions: true
+
+    # Technology constraints
+    constraints:
+      language: typescript
+      framework: express
+      database: postgresql
+```
+
+## Architect with Existing Code
+
+If you're adding to an existing codebase, architect considers existing patterns:
+
+```bash
+# Architect will analyze existing code
+ldf sail architect complete --analyze-existing
+
+# Specify directories to analyze
+ldf sail architect complete --analyze src/services src/controllers
+```
+
+This produces designs that integrate with your existing architecture.
+
+## Architect Signals
+
+When architect completes, it emits a signal:
+
+```yaml
+signal_type: sail.phase_complete
+payload:
+  phase: architect
+  spec: "auth-feature"
+  build_status: success
+  crew_members_used:
+    - architect
+  learnings:
+    - "Designed 3 components with 8 methods"
+    - "Identified 2 key architectural decisions"
+```
+
+## Iterating on Design
+
+You can re-run architect to update the design:
+
+```bash
+# Re-run after spec changes
+ldf sail architect complete
+
+# Preserve existing decisions
+ldf sail architect complete --preserve-decisions
+```
+
+<Aside>
+If you manually edited architect outputs, re-running will overwrite them. Consider using version control to track changes.
+</Aside>
+
+## Integration with Implement
+
+The Implement phase uses architect outputs:
+
+1. **Design document** provides overall context
+2. **Component specs** define what to generate
+3. **Decisions** guide implementation choices
+
+Crew members receive the full architect context when dispatched.
+
+## Next Steps
+
+- [Implement](/sail/implement/) — Generate code from designs
+- [Crew System](/crew/overview/) — How architect crew works
+- [Learn](/sail/learn/) — Capture insights after implementation

@@ -1,0 +1,171 @@
+---
+title: First Loop
+description: Walk through your first complete NRRV development loop.
+---
+
+import { Aside, Steps, Badge } from '@astrojs/starlight/components';
+
+# Your First Loop
+
+This tutorial walks you through a complete NRRV development loop, from navigation to validation. We'll build a simple TODO API as an example.
+
+## The Four Phases
+
+<div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem; margin: 2rem 0;">
+  <div style="padding: 1rem; background: #fef3c7; border-radius: 8px;">
+    <strong>1. Navigate</strong><br/>
+    Define goals and gather requirements
+  </div>
+  <div style="padding: 1rem; background: #dbeafe; border-radius: 8px;">
+    <strong>2. Reason</strong><br/>
+    Design solutions and make decisions
+  </div>
+  <div style="padding: 1rem; background: #d1fae5; border-radius: 8px;">
+    <strong>3. Realize</strong><br/>
+    Build with AI assistance (SAIL)
+  </div>
+  <div style="padding: 1rem; background: #ede9fe; border-radius: 8px;">
+    <strong>4. Validate</strong><br/>
+    Test and verify quality
+  </div>
+</div>
+
+## Phase 1: Navigate
+
+<Steps>
+1. **Start a new loop:**
+   ```bash
+   nrrv loop init --goals "Build a TODO API with CRUD operations"
+   ```
+
+2. **Confirm you're in Navigate phase:**
+   ```bash
+   nrrv loop status
+   ```
+
+   Output:
+   ```
+   Loop #1 — navigate
+   Goals: Build a TODO API with CRUD operations
+   Started: 2024-01-15T10:00:00Z
+   ```
+
+3. **Create your spec:**
+   ```bash
+   ldf spec create todo-api --set
+   ```
+
+4. **Advance to Reason phase:**
+   ```bash
+   nrrv phase advance reason
+   ```
+</Steps>
+
+## Phase 2: Reason
+
+In the Reason phase, you design your solution.
+
+<Steps>
+1. **Review your spec and add technical details:**
+   - Database schema
+   - API endpoints
+   - Error handling approach
+   - Testing strategy
+
+2. **Advance to Realize phase:**
+   ```bash
+   nrrv phase advance realize
+   ```
+</Steps>
+
+<Aside>
+The Reason phase is where you make architectural decisions *before* AI assistance kicks in. This ensures you maintain control over the technical direction.
+</Aside>
+
+## Phase 3: Realize (SAIL)
+
+The Realize phase uses SAIL for AI-assisted implementation.
+
+### Scope
+```bash
+ldf sail scope complete
+```
+
+This dispatches the **scope** crew member to:
+- Extract formal requirements
+- Create user stories
+- Define TDD anchors (test specifications)
+
+### Architect
+```bash
+ldf sail architect complete
+```
+
+This dispatches the **architect** crew member to:
+- Design technical architecture
+- Define component structure
+- Plan implementation approach
+
+### Implement
+```bash
+ldf crew dispatch coder
+```
+
+This dispatches the **coder** crew member to:
+- Generate implementation code
+- Write tests
+- Create documentation
+
+### Learn
+```bash
+ldf sail learn complete
+```
+
+This captures learnings from the implementation for future reference.
+
+## Phase 4: Validate
+
+<Steps>
+1. **Advance to Validate phase:**
+   ```bash
+   nrrv phase advance validate
+   ```
+
+2. **Run your tests:**
+   ```bash
+   npm test
+   ```
+
+3. **Run guardrail checks:**
+   ```bash
+   ldf guardrails check src/
+   ```
+
+4. **Complete the loop:**
+   ```bash
+   nrrv loop complete
+   ```
+</Steps>
+
+## View Loop Summary
+
+After completing the loop:
+
+```bash
+nrrv loop status
+```
+
+Output:
+```
+Loop #1 — completed
+Goals: Build a TODO API with CRUD operations
+Duration: 2h 15m
+Phases: navigate → reason → realize → validate ✓
+Signals: 24 emitted
+```
+
+## What's Next?
+
+- [SAIL Deep Dive](/sail/overview/) - Master AI-assisted development
+- [Signals Reference](/framework/signals/) - Understand the signal system
+- [Guardrails](/framework/guardrails/) - Learn about quality checks

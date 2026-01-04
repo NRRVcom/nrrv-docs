@@ -1,0 +1,165 @@
+---
+title: Framework Overview
+description: Understanding the NRRV development lifecycle framework architecture.
+---
+
+import { Aside, Card, CardGrid } from '@astrojs/starlight/components';
+
+# Framework Overview
+
+NRRV provides a structured approach to AI-assisted software development. This page explains the core architecture and how the pieces fit together.
+
+## Architecture
+
+The NRRV ecosystem consists of three main layers:
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                       User Interfaces                        │
+│           nrrv CLI    │    ldf CLI    │    Dashboards        │
+├─────────────────────────────────────────────────────────────┤
+│                      Core Framework                          │
+│         Loops    │   Phases   │   SAIL   │   Guardrails     │
+├─────────────────────────────────────────────────────────────┤
+│                       Signal Log                             │
+│              The source of truth for all state               │
+└─────────────────────────────────────────────────────────────┘
+```
+
+### Signal-First Architecture
+
+The defining characteristic of NRRV is its **signal-first architecture**. Rather than storing state in files that can be edited directly, all state is derived from an append-only log of signals.
+
+```yaml
+# Example: A phase transition signal
+signal_type: lifecycle.phase_transition
+timestamp: "2024-01-15T10:30:00Z"
+actor: "developer@example.com"
+source: nrrv
+payload:
+  from_phase: navigate
+  to_phase: reason
+```
+
+This provides:
+
+- **Complete audit trail**: Every action is recorded with timestamp and actor
+- **Debugging capability**: Replay signals to understand how state was reached
+- **Conflict detection**: Signals include IDs that detect concurrent modifications
+- **Integration points**: External tools can emit signals to participate in the lifecycle
+
+<Aside type="tip">
+Think of signals like a git log for your development process—you can always trace back to understand what happened and why.
+</Aside>
+
+## Two CLIs, One Ecosystem
+
+NRRV provides two command-line tools that work together:
+
+<CardGrid>
+  <Card title="nrrv CLI" icon="compass">
+    Manages the high-level **development lifecycle**:
+    - Loop initialization and completion
+    - Phase transitions (Navigate → Reason → Realize → Validate)
+    - Status reporting
+  </Card>
+  <Card title="ldf CLI" icon="rocket">
+    Manages **AI-assisted development** within loops:
+    - SAIL phase execution
+    - Crew member dispatch
+    - Guardrail enforcement
+    - Spec management
+  </Card>
+</CardGrid>
+
+Both CLIs emit signals to the same log, providing a unified view of development activity.
+
+## Core Concepts
+
+### Loops
+
+A **loop** is a complete development cycle through all four NRRV phases. Each loop:
+
+- Has a unique loop ID (auto-incrementing integer)
+- Starts with defined goals
+- Progresses through Navigate → Reason → Realize → Validate
+- Ends with an outcome (continue, adjust, or pivot)
+
+```bash
+# Start a new loop
+nrrv loop init --goals "Add user authentication"
+
+# Check current status
+nrrv loop status
+
+# Complete the loop
+nrrv loop complete --outcome continue
+```
+
+### Phases
+
+NRRV defines four phases that structure development work:
+
+| Phase | Purpose | Primary Activities |
+|-------|---------|-------------------|
+| **Navigate** | Set direction | Define goals, gather requirements |
+| **Reason** | Design solution | Architecture decisions, planning |
+| **Realize** | Build it | AI-assisted implementation (SAIL) |
+| **Validate** | Verify quality | Testing, code review, guardrails |
+
+### SAIL
+
+Within the Realize phase, **SAIL** provides structured AI assistance:
+
+1. **Scope**: Extract requirements and define test anchors
+2. **Architect**: Design the technical approach
+3. **Implement**: Generate code with crew members
+4. **Learn**: Document insights for future reference
+
+### Signals
+
+Signals are the atomic units of the NRRV event log. Every action that affects lifecycle state emits a signal:
+
+| Signal Type | Emitter | Purpose |
+|-------------|---------|---------|
+| `lifecycle.*` | nrrv CLI | Loop and phase management |
+| `sail.*` | ldf CLI | SAIL phase completion |
+| `crew.*` | ldf CLI | Crew dispatch tracking |
+| `guardrail.*` | ldf CLI | Quality enforcement |
+| `build.*`, `test.*` | CI | Build and test results |
+
+### Guardrails
+
+Guardrails are automated quality checks that run on AI-generated code:
+
+- Prevent common security issues
+- Enforce coding standards
+- Catch anti-patterns
+- Block output that violates project rules
+
+## Directory Structure
+
+An NRRV project has this structure:
+
+```
+my-project/
+├── .nrrv/
+│   ├── loop.yaml           # Current loop state (derived)
+│   └── signals/            # Signal log directory
+│       └── *.yaml          # Individual signal files
+├── .ldf/
+│   ├── settings.yaml       # LDF configuration
+│   ├── specs/              # Spec files
+│   └── sail/               # SAIL artifacts
+└── src/                    # Your code
+```
+
+<Aside>
+Files in `.nrrv/` and `.ldf/` are managed by the CLIs. While you can read them, avoid editing them directly—use CLI commands instead.
+</Aside>
+
+## Next Steps
+
+- [NRRV Phases](/framework/phases/) — Deep dive into each phase
+- [Signals](/framework/signals/) — Complete signal reference
+- [Loops](/framework/loops/) — Loop lifecycle details

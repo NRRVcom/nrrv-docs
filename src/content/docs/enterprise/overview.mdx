@@ -1,0 +1,297 @@
+---
+title: Enterprise Overview
+description: Enterprise features for team collaboration and organization-wide configuration.
+---
+
+import { Aside, Card, CardGrid, Tabs, TabItem } from '@astrojs/starlight/components';
+
+# Enterprise Features
+
+The `@ldf/enterprise` package provides enterprise-grade features for teams and organizations using the NRRV/LDF ecosystem.
+
+## What's Included
+
+<CardGrid>
+  <Card title="Config Sync" icon="setting">
+    Sync organization-wide configuration from a central Git repository.
+  </Card>
+  <Card title="Permissions" icon="approve-check">
+    4-tier permission hierarchy with role-based access control.
+  </Card>
+  <Card title="Team Coordination" icon="group">
+    Multi-user loop collaboration with handoffs and activity tracking.
+  </Card>
+  <Card title="SSO Integration" icon="external">
+    OIDC support for Okta, Google, Azure AD, and Auth0.
+  </Card>
+  <Card title="Audit & Compliance" icon="document">
+    Comprehensive audit logging with SOC2 and HIPAA templates.
+  </Card>
+</CardGrid>
+
+## Installation
+
+```bash
+pnpm add @ldf/enterprise
+```
+
+## Quick Start
+
+### Initialize Enterprise Config
+
+```bash
+# Point to your organization's config repo
+ldf enterprise init --repo git@github.com:acme/nrrv-config.git
+
+# Sync configuration
+ldf enterprise sync
+
+# View your permissions
+ldf enterprise whoami
+```
+
+## Permission Hierarchy
+
+Enterprise permissions follow a 4-tier hierarchy:
+
+```
+┌─────────────────────────────────────────────────────────┐
+│                  ENTERPRISE_ADMIN                        │
+│  Full access: config, guardrails, providers, audit       │
+├─────────────────────────────────────────────────────────┤
+│                     TEAM_LEAD                            │
+│  Team config, guardrail overrides, loops, audit read     │
+├─────────────────────────────────────────────────────────┤
+│                     DEVELOPER                            │
+│  Config read, create loops                               │
+├─────────────────────────────────────────────────────────┤
+│                      VIEWER                              │
+│  Read-only access to config, loops, and audit            │
+└─────────────────────────────────────────────────────────┘
+```
+
+### Permission Scopes
+
+| Scope | Admin | Lead | Dev | Viewer |
+|-------|-------|------|-----|--------|
+| `config:read` | ✓ | ✓ | ✓ | ✓ |
+| `config:write` | ✓ | ✓ | | |
+| `guardrails:override` | ✓ | ✓ | | |
+| `providers:manage` | ✓ | | | |
+| `loops:create` | ✓ | ✓ | ✓ | |
+| `loops:view_all` | ✓ | ✓ | | ✓ |
+| `audit:read` | ✓ | ✓ | | ✓ |
+| `audit:export` | ✓ | | | |
+| `team:manage` | ✓ | ✓ | | |
+
+## Configuration Resolution
+
+Enterprise config merges with team and user settings:
+
+```
+┌─────────────────────────────────────────────┐
+│  Enterprise Config (enforced)               │  Cannot override
+├─────────────────────────────────────────────┤
+│  Team Config                                │  Can override recommended
+├─────────────────────────────────────────────┤
+│  User Config                                │  Can override recommended
+├─────────────────────────────────────────────┤
+│  Defaults                                   │  Fallback values
+└─────────────────────────────────────────────┘
+```
+
+### Enterprise Config File
+
+```yaml
+# nrrv-enterprise.yaml
+org_id: acme-corp
+version: "2.0"
+
+guardrails:
+  enforced:
+    - id: security.no-secrets
+      severity: error
+    - id: security.no-hardcoded-urls
+      severity: error
+  recommended:
+    - id: style.max-file-size
+      severity: warn
+
+providers:
+  allowed:
+    - claude
+    - openai
+  blocked:
+    - gemini
+  default: claude
+
+audit:
+  require_signed_signals: true
+  retention_days: 365
+  export_format: json
+
+teams:
+  - id: platform
+    name: Platform Team
+    leads:
+      - alice@acme.com
+    members:
+      - bob@acme.com
+      - charlie@acme.com
+    guardrails:
+      overrides:
+        - id: style.max-file-size
+          action: disable
+```
+
+## Team Coordination
+
+Enable multiple users to collaborate on loops:
+
+### Team Signals
+
+<Tabs>
+  <TabItem label="Invite">
+```yaml
+signal_type: team.loop_invite
+loop_id: 42
+inviter: alice@acme.com
+invitees:
+  - bob@acme.com
+  - charlie@acme.com
+role: collaborator
+message: "Ready for architecture review"
+timestamp: "2026-01-04T12:00:00Z"
+```
+  </TabItem>
+  <TabItem label="Join">
+```yaml
+signal_type: team.loop_join
+loop_id: 42
+user: bob@acme.com
+role: collaborator
+join_method: invite
+timestamp: "2026-01-04T12:05:00Z"
+```
+  </TabItem>
+  <TabItem label="Handoff">
+```yaml
+signal_type: team.loop_handoff
+loop_id: 42
+from_user: alice@acme.com
+to_user: bob@acme.com
+phase: architect
+notes: "Scope complete, ready for architecture"
+timestamp: "2026-01-04T12:10:00Z"
+```
+  </TabItem>
+</Tabs>
+
+### Participant Roles
+
+| Role | Can Invite | Can Edit | Can Handoff |
+|------|------------|----------|-------------|
+| `owner` | ✓ | ✓ | ✓ |
+| `collaborator` | ✓ | ✓ | ✓ |
+| `reviewer` | | ✓ | |
+| `observer` | | | |
+
+## SSO Integration
+
+Enterprise SSO via OIDC:
+
+```typescript
+import { createOIDCProvider, OIDC_PRESETS } from '@ldf/enterprise';
+
+// Use a preset
+const okta = OIDC_PRESETS.okta({
+  domain: 'acme.okta.com',
+  clientId: 'your-client-id',
+  clientSecret: 'your-client-secret',
+});
+
+// Or Google Workspace
+const google = OIDC_PRESETS.google({
+  clientId: 'your-client-id',
+  clientSecret: 'your-client-secret',
+});
+```
+
+### Supported Providers
+
+| Provider | Preset | Configuration |
+|----------|--------|---------------|
+| Okta | `OIDC_PRESETS.okta()` | Domain, clientId, clientSecret |
+| Google | `OIDC_PRESETS.google()` | clientId, clientSecret |
+| Azure AD | `OIDC_PRESETS.azure()` | tenantId, clientId, clientSecret |
+| Auth0 | `OIDC_PRESETS.auth0()` | Domain, clientId, clientSecret |
+
+## Audit & Compliance
+
+Generate compliance reports:
+
+```typescript
+import { AuditReporter, SOC2_TEMPLATE, checkCompliance } from '@ldf/enterprise';
+
+const reporter = new AuditReporter(signalStore);
+
+// Generate audit report
+const report = await reporter.generateReport(
+  new Date('2026-01-01'),
+  new Date('2026-03-31')
+);
+
+// Check SOC2 compliance
+const compliance = checkCompliance(signals, SOC2_TEMPLATE);
+console.log(`Compliance: ${compliance.score}%`);
+```
+
+### Compliance Templates
+
+| Template | Purpose |
+|----------|---------|
+| `SOC2_TEMPLATE` | SOC 2 Type II compliance |
+| `HIPAA_TEMPLATE` | HIPAA compliance |
+| `INTERNAL_AUDIT_TEMPLATE` | Internal audit requirements |
+
+### Export Formats
+
+```typescript
+import { exportToJson, exportToCsv, exportToNdjson } from '@ldf/enterprise';
+
+// Export as JSON
+const json = exportToJson(report);
+
+// Export as CSV
+const csv = exportToCsv(report);
+
+// Export as NDJSON (newline-delimited JSON)
+const ndjson = exportToNdjson(report);
+```
+
+## CLI Commands
+
+```bash
+# Initialize enterprise config
+ldf enterprise init --repo <url>
+
+# Sync config from remote
+ldf enterprise sync
+
+# View current config
+ldf enterprise config
+
+# Check your permissions
+ldf enterprise whoami
+```
+
+<Aside type="tip">
+Run `ldf enterprise sync` after pulling new config changes to ensure your local settings are up to date.
+</Aside>
+
+## Next Steps
+
+- [Permissions](/enterprise/permissions/) — Detailed permission system
+- [Team Coordination](/enterprise/teams/) — Multi-user collaboration
+- [SSO](/enterprise/sso/) — Single sign-on setup
+- [Audit](/enterprise/audit/) — Compliance reporting

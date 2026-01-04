@@ -70,6 +70,12 @@ export default defineConfig({
           label: 'API Reference',
           autogenerate: { directory: 'api' },
         },
+        {
+          label: 'Enterprise',
+          items: [
+            { label: 'Overview', slug: 'enterprise/overview' },
+          ],
+        },
       ],
       head: [
         {

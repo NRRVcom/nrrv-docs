@@ -84,17 +84,23 @@ Emitted when a new loop is initialized.
     "signal_type": { "const": "lifecycle.loop_start" },
     "payload": {
       "type": "object",
-      "required": ["loop_id"],
+      "required": ["loop_id", "started_from", "decision"],
       "properties": {
         "loop_id": { "type": "integer", "minimum": 1 },
-        "goals": {
-          "type": "array",
-          "items": { "type": "string" }
-        },
         "initial_phase": {
           "type": "string",
           "enum": ["navigate", "reason", "realize", "validate"],
           "default": "navigate"
+        },
+        "started_from": {
+          "type": ["string", "null"],
+          "enum": ["navigate", "reason", "realize", "validate", null],
+          "description": "Previous loop's ending phase (null for first loop)"
+        },
+        "decision": {
+          "type": ["string", "null"],
+          "enum": ["continue", "adjust", "pivot", null],
+          "description": "Outcome from previous loop (null for first loop)"
         }
       }
     }
@@ -110,10 +116,9 @@ actor: "dev@example.com"
 source: nrrv
 payload:
   loop_id: 5
-  goals:
-    - "Add user authentication"
-    - "Implement password reset"
   initial_phase: navigate
+  started_from: validate
+  decision: continue
 metadata:
   signal_id: "2024-01-15T09-00-00Z_01942d5e-7f3d-7abc-8def-123456789abc"
 ```
@@ -133,8 +138,9 @@ Emitted when the phase changes.
     "signal_type": { "const": "lifecycle.phase_transition" },
     "payload": {
       "type": "object",
-      "required": ["from_phase", "to_phase"],
+      "required": ["loop_id", "from_phase", "to_phase", "acknowledged_warnings"],
       "properties": {
+        "loop_id": { "type": "integer", "minimum": 1 },
         "from_phase": {
           "type": "string",
           "enum": ["navigate", "reason", "realize", "validate"]
@@ -145,7 +151,8 @@ Emitted when the phase changes.
         },
         "acknowledged_warnings": {
           "type": "array",
-          "items": { "type": "string" }
+          "items": { "type": "string" },
+          "description": "Warning IDs that were acknowledged for this transition"
         }
       }
     }
@@ -160,6 +167,7 @@ timestamp: "2024-01-15T10:30:00Z"
 actor: "dev@example.com"
 source: nrrv
 payload:
+  loop_id: 5
   from_phase: navigate
   to_phase: reason
   acknowledged_warnings:
@@ -247,8 +255,9 @@ Emitted when a warning is acknowledged.
     "signal_type": { "const": "lifecycle.waiver" },
     "payload": {
       "type": "object",
-      "required": ["warning_id", "reason", "phase"],
+      "required": ["loop_id", "warning_id", "reason", "phase"],
       "properties": {
+        "loop_id": { "type": "integer", "minimum": 1 },
         "warning_id": { "type": "string" },
         "reason": { "type": "string" },
         "phase": {
@@ -265,6 +274,7 @@ Emitted when a warning is acknowledged.
 ```yaml
 signal_type: lifecycle.waiver
 payload:
+  loop_id: 5
   warning_id: "missing_spec"
   reason: "Spec will be created during Reason phase"
   phase: navigate
@@ -588,7 +598,7 @@ Emitted when TDD coverage is assessed.
     "signal_type": { "const": "tdd.coverage_report" },
     "payload": {
       "type": "object",
-      "required": ["spec", "phase", "summary", "by_status", "by_type"],
+      "required": ["spec", "phase", "summary", "by_status", "by_type", "gaps"],
       "properties": {
         "spec": { "type": "string" },
         "phase": { "type": "string" },
@@ -602,14 +612,17 @@ Emitted when TDD coverage is assessed.
         },
         "by_status": {
           "type": "object",
+          "required": ["pending", "implemented", "passing", "failing"],
           "properties": {
             "pending": { "type": "integer", "minimum": 0 },
+            "implemented": { "type": "integer", "minimum": 0 },
             "passing": { "type": "integer", "minimum": 0 },
             "failing": { "type": "integer", "minimum": 0 }
           }
         },
         "by_type": {
           "type": "object",
+          "required": ["unit", "integration", "acceptance"],
           "properties": {
             "unit": { "type": "integer", "minimum": 0 },
             "integration": { "type": "integer", "minimum": 0 },
@@ -649,6 +662,7 @@ payload:
     coverage_percent: 83.3
   by_status:
     pending: 2
+    implemented: 0
     passing: 10
     failing: 0
   by_type:

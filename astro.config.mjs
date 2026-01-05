@@ -38,6 +38,7 @@ export default defineConfig({
             { label: 'NRRV Phases', slug: 'framework/phases' },
             { label: 'Signals', slug: 'framework/signals' },
             { label: 'Loops', slug: 'framework/loops' },
+            { label: 'Guardrails', slug: 'framework/guardrails' },
           ],
         },
         {
@@ -48,6 +49,7 @@ export default defineConfig({
             { label: 'Architect', slug: 'sail/architect' },
             { label: 'Implement', slug: 'sail/implement' },
             { label: 'Learn', slug: 'sail/learn' },
+            { label: 'TDD Anchors', slug: 'sail/tdd-anchors' },
           ],
         },
         {

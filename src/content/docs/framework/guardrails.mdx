@@ -1,0 +1,210 @@
+---
+title: Guardrails
+description: Automated quality checks for AI-generated code that catch issues before they become problems.
+---
+
+import { Aside, Card, CardGrid, Tabs, TabItem } from '@astrojs/starlight/components';
+
+# Guardrails
+
+Guardrails are automated quality checks that run on code during SAIL execution. They catch common issues, enforce standards, and prevent problems before they reach your codebase.
+
+## How Guardrails Work
+
+When the crew generates code, guardrails automatically scan the output for:
+
+- **Security issues** — API keys, secrets, credentials
+- **Code quality problems** — Debug statements, incomplete work markers
+- **Type safety violations** — Loose typing that weakens safety
+- **Maintainability concerns** — Large files, missing tests
+
+```
+┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
+│  Crew Output    │ → │   Guardrails    │ → │  Clean Output   │
+│  (generated)    │    │   (validate)    │    │  (or warnings)  │
+└─────────────────┘    └─────────────────┘    └─────────────────┘
+```
+
+<Aside type="tip">
+Guardrails use "soft validation" — they flag issues without blocking work. You can acknowledge warnings and proceed when needed.
+</Aside>
+
+## Built-in Rules
+
+LDF includes 7 built-in guardrail rules:
+
+### Active by Default
+
+| ID | Name | Severity | Description |
+|----|------|----------|-------------|
+| `no-secrets` | No Secrets | error | Detects API keys, passwords, and credentials |
+| `no-console-log` | No Console.log | warning | Catches debug statements |
+| `no-todos` | No TODOs | warning | Flags incomplete work markers (TODO, FIXME) |
+| `no-any-type` | No Any Type | warning | Detects TypeScript `any` usage |
+| `max-file-size` | Max File Size | warning | Warns when files exceed 500 lines |
+
+### Available (Disabled by Default)
+
+| ID | Name | Severity | Description |
+|----|------|----------|-------------|
+| `no-hardcoded-urls` | No Hardcoded URLs | warning | Detects URLs that should be configurable |
+| `require-test-file` | Require Test File | error | Ensures implementation files have tests |
+
+## Using Guardrails
+
+### List Available Rules
+
+```bash
+ldf guardrails
+```
+
+Output shows active and disabled rules with their severity levels.
+
+### Check Files
+
+```bash
+# Check a specific file
+ldf guardrails check src/auth.ts
+
+# Check with glob pattern
+ldf guardrails check "src/**/*.ts"
+
+# Check only for errors (skip warnings)
+ldf guardrails check src/ --severity error
+```
+
+### Example Output
+
+```
+Checking 3 files...
+
+src/config.ts
+  ✗ [no-secrets] Possible API key detected at line 15
+  ⚠ [no-console-log] Console.log at line 23
+
+src/utils.ts
+  ⚠ [max-file-size] File has 523 lines (max: 500)
+
+Summary: 1 error, 2 warnings
+```
+
+## Configuration
+
+Configure guardrails in your LDF settings file:
+
+<Tabs>
+<TabItem label="settings.yaml">
+```yaml
+# .ldf/settings.yaml
+guardrails:
+  # Enable/disable specific rules
+  rule_overrides:
+    no-hardcoded-urls:
+      enabled: true
+    no-console-log:
+      severity: error  # Upgrade to error
+    max-file-size:
+      enabled: false   # Disable
+
+  # Add custom rules
+  custom_rules:
+    - id: no-debug-imports
+      name: No Debug Imports
+      description: Block debug-only imports
+      severity: error
+      pattern: "import.*debug"
+```
+</TabItem>
+<TabItem label="Inline Override">
+```typescript
+// @guardrails-ignore no-console-log
+console.log('This is allowed');
+```
+</TabItem>
+</Tabs>
+
+## Severity Levels
+
+Guardrails use three severity levels:
+
+| Level | Meaning | Behavior |
+|-------|---------|----------|
+| **error** | Must be fixed | Blocks crew completion, requires resolution |
+| **warning** | Should be reviewed | Flagged but doesn't block; can acknowledge |
+| **info** | For awareness | Informational only |
+
+## Crew Integration
+
+Guardrails run automatically during crew dispatch:
+
+```bash
+ldf crew dispatch coder --spec user-auth
+```
+
+If violations are found:
+
+1. **Errors** — The crew reports failure; you must fix the issues
+2. **Warnings** — The crew reports success with warnings; review recommended
+3. **Acknowledgment** — Use `--acknowledge` to proceed with warnings
+
+```bash
+# Acknowledge known warnings
+ldf crew dispatch coder --spec user-auth --acknowledge
+```
+
+## Signals
+
+Guardrail activity is recorded in signals:
+
+```yaml
+# .nrrv/signals/guardrail/violation-2024-01-15T10:30:00.yaml
+signal_type: guardrail.violation
+timestamp: "2024-01-15T10:30:00Z"
+actor: ldf
+payload:
+  file: src/config.ts
+  violations:
+    - guardrail_id: no-secrets
+      severity: error
+      message: "Possible API key detected"
+      line: 15
+```
+
+## Enterprise Guardrails
+
+Enterprise customers can configure team-wide guardrails that inherit across projects:
+
+```yaml
+# company-config/guardrails.yaml (synced via enterprise config)
+guardrails:
+  rule_overrides:
+    no-secrets:
+      severity: error
+    require-test-file:
+      enabled: true
+```
+
+See [Enterprise Overview](/enterprise/overview/) for details.
+
+## Best Practices
+
+<CardGrid>
+  <Card title="Start with Defaults" icon="check">
+    The default rules catch the most common issues. Enable additional rules as needed.
+  </Card>
+  <Card title="Fix Errors First" icon="warning">
+    Address error-level violations before warnings. Errors indicate real problems.
+  </Card>
+  <Card title="Review Warnings" icon="magnifier">
+    Don't blindly acknowledge warnings. Review them and fix what makes sense.
+  </Card>
+  <Card title="Customize Thoughtfully" icon="setting">
+    Adjust severity levels to match your team's standards. Avoid disabling security rules.
+  </Card>
+</CardGrid>
+
+## Next Steps
+
+- [Crew Overview](/crew/overview/) — How guardrails integrate with crew dispatch
+- [Signals](/framework/signals/) — Understanding guardrail signals
+- [Enterprise](/enterprise/overview/) — Team-wide guardrail configuration

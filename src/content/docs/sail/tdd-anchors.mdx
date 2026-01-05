@@ -1,0 +1,372 @@
+---
+title: TDD Anchors
+description: Test-first specifications that bridge requirements to tests, ensuring every success criterion has a corresponding test.
+---
+
+import { Aside, Card, CardGrid, Tabs, TabItem } from '@astrojs/starlight/components';
+
+# TDD Anchors
+
+TDD anchors are test-first specifications that bridge requirements to tests. Created during the **Architect** phase and tracked through **Implementation**, they ensure every success criterion has a corresponding test.
+
+## Why TDD Anchors?
+
+| Benefit | Description |
+|---------|-------------|
+| **Traceability** | Every test traces back to a specific requirement |
+| **Completeness** | No requirement goes untested |
+| **Early Validation** | Test criteria defined before coding begins |
+| **Progress Tracking** | Clear metrics for implementation status |
+
+```
+Scope          → Success criteria defined
+    ↓
+Architect      → TDD anchors extracted (status: pending)
+    ↓
+Implement      → Tests written (status: written → passing)
+    ↓
+Learn          → Coverage reported, gaps documented
+```
+
+## Anchor Format
+
+TDD anchors are defined in your spec file with this structure:
+
+```yaml
+tdd_anchors:
+  - description: "Human-readable test requirement"
+    test_file: "tests/feature.test.ts"
+    status: pending
+    extracted_from: "scope.success_criteria[0]"
+```
+
+| Field | Required | Description |
+|-------|----------|-------------|
+| `description` | Yes | Human-readable test requirement |
+| `test_file` | Yes | Target test file path |
+| `status` | Yes | Current anchor status (see lifecycle) |
+| `extracted_from` | No | Reference to source in spec |
+
+## GIVEN-WHEN-THEN Format
+
+For clarity and testability, we **recommend** writing anchor descriptions using the GIVEN-WHEN-THEN format:
+
+```
+GIVEN <precondition or context>
+WHEN <action or event>
+THEN <expected outcome>
+```
+
+### Examples
+
+<Tabs>
+<TabItem label="Simple">
+```yaml
+tdd_anchors:
+  - description: "GIVEN a valid email WHEN user registers THEN account is created"
+    test_file: "tests/auth/register.test.ts"
+    status: pending
+    extracted_from: "scope.success_criteria[0]"
+```
+</TabItem>
+<TabItem label="Error Case">
+```yaml
+tdd_anchors:
+  - description: "GIVEN an invalid email WHEN user registers THEN validation error is shown"
+    test_file: "tests/auth/register.test.ts"
+    status: pending
+    extracted_from: "scope.success_criteria[0]"
+```
+</TabItem>
+<TabItem label="With AND">
+```yaml
+tdd_anchors:
+  - description: "GIVEN a user is logged in AND has admin permissions WHEN accessing dashboard THEN all metrics are visible"
+    test_file: "tests/admin/dashboard.test.ts"
+    status: pending
+    extracted_from: "scope.success_criteria[2]"
+```
+</TabItem>
+</Tabs>
+
+<Aside type="tip">
+If not using GIVEN-WHEN-THEN, ensure descriptions are **specific** ("Email validation rejects missing @ symbol" not "Email works"), **testable** (contains concrete, verifiable behavior), and **independent** (each anchor tests one behavior).
+</Aside>
+
+## Anchor Types
+
+Anchors can be classified by scope for better organization:
+
+| Type | Scope | Test Framework | Use When |
+|------|-------|----------------|----------|
+| **unit** | Single function/class | Jest, Vitest | Testing isolated logic, transformations |
+| **integration** | Multiple components | Jest + mocks | Testing API endpoints, database queries |
+| **acceptance** | User journey | Playwright, Cypress | Testing end-to-end flows |
+
+### Type Inference Guidelines
+
+When reviewing anchors, classify based on these heuristics:
+
+- Contains "user", "journey", "flow" → **acceptance**
+- Contains "API", "database", "service", "endpoint" → **integration**
+- Contains "returns", "calculates", "validates" → **unit**
+
+### Recommended Distribution
+
+For a typical feature:
+- 60-70% unit anchors (fast, isolated)
+- 20-30% integration anchors (component boundaries)
+- 10-20% acceptance anchors (critical paths only)
+
+## Status Lifecycle
+
+```
+pending → written → passing → verified
+              ↓         ↓
+           failing ←────┘
+              ↓
+           written (fix applied)
+```
+
+| Status | Definition | Set By | Transition Trigger |
+|--------|------------|--------|-------------------|
+| `pending` | Anchor defined, no test exists | Architect phase | Initial state |
+| `written` | Test file created | Implement phase | Test file detected |
+| `passing` | Test passes in CI | CI/CD | Test run success |
+| `failing` | Previously passing test now fails | CI/CD | Regression detected |
+| `verified` | Human confirmed correctness | Review | Manual verification |
+
+### Status Transitions
+
+| From | To | Trigger |
+|------|-----|---------|
+| `pending` | `written` | Test file created matching anchor |
+| `written` | `passing` | CI reports test passes |
+| `written` | `failing` | CI reports test fails |
+| `passing` | `verified` | Human review confirms correctness |
+| `passing` | `failing` | Regression detected in CI |
+| `failing` | `written` | Fix applied, test rewritten |
+
+<Aside type="caution">
+The `failing` state specifically captures **regressions** — tests that were passing but now fail. This enables priority signaling and distinguishes "never worked" from "stopped working."
+</Aside>
+
+## Complete Spec Example
+
+```yaml
+name: user-authentication
+version: 1.0.0
+status: implementing
+
+scope:
+  problem_statement: "Users need secure authentication"
+  success_criteria:
+    - "Users can register with email and password"
+    - "Invalid credentials show clear error messages"
+    - "Sessions expire after 24 hours of inactivity"
+
+tdd_anchors:
+  - description: "GIVEN valid email/password WHEN user registers THEN account is created"
+    test_file: "tests/auth/register.test.ts"
+    status: pending
+    extracted_from: "scope.success_criteria[0]"
+
+  - description: "GIVEN existing email WHEN user registers THEN duplicate error is shown"
+    test_file: "tests/auth/register.test.ts"
+    status: pending
+    extracted_from: "scope.success_criteria[0]"
+
+  - description: "GIVEN invalid credentials WHEN user logs in THEN error message is displayed"
+    test_file: "tests/auth/login.test.ts"
+    status: pending
+    extracted_from: "scope.success_criteria[1]"
+
+  - description: "GIVEN 24 hours of inactivity WHEN user makes request THEN session is expired"
+    test_file: "tests/auth/session.test.ts"
+    status: pending
+    extracted_from: "scope.success_criteria[2]"
+```
+
+## Coverage Reporting
+
+### Coverage Calculation
+
+```
+coverage = (passing + verified) / total × 100
+```
+
+Only `passing` and `verified` anchors count toward coverage. `written` anchors are in progress but not yet confirmed.
+
+### Coverage Thresholds
+
+| Level | Threshold | Indicator |
+|-------|-----------|-----------|
+| Excellent | ≥90% | Ready for release |
+| Good | ≥80% | Minor gaps acceptable |
+| Acceptable | ≥60% | Needs improvement |
+| Poor | <60% | Blocking issue |
+
+### Example Report
+
+```
+TDD Anchor Coverage: user-authentication
+═══════════════════════════════════════
+
+Coverage: 75% (9/12 anchors)
+
+Status Distribution:
+  ✓ passing   6
+  ◐ written   3
+  ○ pending   2
+  ✗ failing   1
+
+Details:
+  ✓ GIVEN valid email WHEN register THEN account created
+    → tests/auth/register.test.ts:45
+
+  ✓ GIVEN invalid email WHEN register THEN error shown
+    → tests/auth/register.test.ts:62
+
+  ✗ GIVEN expired session WHEN request made THEN redirect to login
+    → tests/auth/session.test.ts:28 [REGRESSION]
+
+  ○ GIVEN locked account WHEN login THEN lockout message shown
+    → (no test)
+```
+
+## Integration with Crew
+
+### Scope Crew
+
+The **scope** crew member extracts TDD anchors from requirements:
+
+**Input**: Problem statement, success criteria
+**Output**: Initial TDD anchors with `status: pending`
+
+### Coder Crew
+
+The **coder** crew member implements tests for anchors:
+
+**Input**: TDD anchors, codebase context
+**Output**: Test files, updated anchor status (`written`)
+
+### Tester Crew
+
+The **tester** crew member validates test quality and coverage:
+
+**Input**: Test files, TDD anchors
+**Output**: Coverage report, edge case suggestions
+
+### Dispatch Context
+
+When dispatching crew members, TDD anchors are provided as context:
+
+```yaml
+dispatch:
+  crew: coder
+  context:
+    tddAnchors:
+      - "GIVEN valid input WHEN action THEN expected result"
+      - "GIVEN invalid input WHEN action THEN error shown"
+    targetFiles:
+      - "tests/feature.test.ts"
+```
+
+## Anchor-to-Criteria Ratio
+
+| Criterion Complexity | Recommended Anchors |
+|---------------------|---------------------|
+| Simple validation | 1-2 anchors |
+| Standard feature | 2-4 anchors |
+| Complex workflow | 4-6 anchors |
+| Security-critical | 3-5 anchors (including attack vectors) |
+
+## Best Practices
+
+<CardGrid>
+  <Card title="Be Specific" icon="pencil">
+    Write "Email validation rejects missing @ symbol" not "Email works"
+  </Card>
+  <Card title="Cover Errors" icon="warning">
+    Include both success and failure cases for each feature
+  </Card>
+  <Card title="Keep Independent" icon="puzzle">
+    Each anchor should test one behavior, not depend on others
+  </Card>
+  <Card title="Reference Sources" icon="document">
+    Use `extracted_from` to trace back to requirements
+  </Card>
+</CardGrid>
+
+### Review Checklist
+
+Before completing the Architect phase:
+
+- [ ] All success criteria have at least one anchor
+- [ ] Error cases are covered for each feature
+- [ ] Edge cases are identified (empty, null, boundary values)
+- [ ] `test_file` paths follow project conventions
+- [ ] `extracted_from` references are accurate
+- [ ] No duplicate anchors exist
+
+### Anti-Patterns
+
+| Anti-Pattern | Problem | Solution |
+|--------------|---------|----------|
+| Mega-anchor | Tests too many things | Split into focused anchors |
+| Orphan anchor | No `extracted_from` | Link to source requirement |
+| Duplicate anchor | Same test, different wording | Consolidate |
+| Vague anchor | "Feature works" | Use GIVEN-WHEN-THEN |
+| Missing negative | Only happy paths | Add error case anchors |
+
+## TDD Anchor Signals
+
+TDD anchor events emit signals for observability:
+
+<Tabs>
+<TabItem label="Coverage Report">
+```yaml
+signal_type: tdd.coverage_report
+payload:
+  spec: user-authentication
+  total_anchors: 12
+  coverage_percent: 75
+  by_status:
+    pending: 2
+    written: 3
+    passing: 6
+    failing: 1
+    verified: 0
+```
+</TabItem>
+<TabItem label="Status Change">
+```yaml
+signal_type: tdd.anchor_status_changed
+payload:
+  spec: user-authentication
+  anchor_description: "GIVEN valid email WHEN register..."
+  previous_status: written
+  new_status: passing
+  test_file: "tests/auth/register.test.ts"
+  timestamp: "2024-01-15T10:30:00Z"
+```
+</TabItem>
+<TabItem label="Regression">
+```yaml
+signal_type: tdd.regression_detected
+payload:
+  spec: user-authentication
+  anchor_description: "GIVEN expired session..."
+  test_file: "tests/auth/session.test.ts"
+  previous_status: passing
+  ci_run_id: "build-1234"
+```
+</TabItem>
+</Tabs>
+
+## Next Steps
+
+- [Architect Phase](/sail/architect/) — Where TDD anchors are created
+- [Implement Phase](/sail/implement/) — Where tests are written
+- [Crew Overview](/crew/overview/) — How crew uses TDD anchors
+- [Signals](/framework/signals/) — Understanding TDD anchor signals
